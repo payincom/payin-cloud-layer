@@ -1,3 +1,5 @@
+import type { SqlQueryExecutor } from './sql.js';
+
 export const CLOUD_LAYER_MINIMAL_SCHEMA_TABLES = [
   'organizations',
   'organization_members',
@@ -104,4 +106,18 @@ export function assertSafeSchemaSql(sql: string): void {
       throw new Error(`Schema SQL contains forbidden statement: ${forbidden}`);
     }
   }
+}
+
+export async function applyCloudLayerSchema(db: SqlQueryExecutor, sql = getCloudLayerMinimalSchemaSql()): Promise<void> {
+  assertSafeSchemaSql(sql);
+  for (const statement of splitSqlStatements(sql)) {
+    await db.query(statement, []);
+  }
+}
+
+export function splitSqlStatements(sql: string): string[] {
+  return sql
+    .split(';')
+    .map((statement) => statement.trim())
+    .filter(Boolean);
 }

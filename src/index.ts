@@ -51,8 +51,10 @@ export type { MutableCloudWebhookEndpointRepository } from './adapters/repositor
 
 export {
   CLOUD_LAYER_MINIMAL_SCHEMA_TABLES,
+  applyCloudLayerSchema,
   assertSafeSchemaSql,
   getCloudLayerMinimalSchemaSql,
+  splitSqlStatements,
 } from './adapters/repositories/schema.js';
 
 export {
