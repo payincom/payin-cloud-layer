@@ -1,3 +1,6 @@
+export { CloudOrderService } from './services/order-service.js';
+export type { CloudOrderCreateServiceRequest, CloudOrderServiceOptions } from './services/order-service.js';
+
 export {
   IntegrationSafetyError,
   assertDisposableIntegrationDatabaseUrl,
