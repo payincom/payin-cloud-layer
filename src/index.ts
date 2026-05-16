@@ -25,6 +25,14 @@ export {
 export type { CloudRouteErrorBody, CloudRouteRequest, CloudRouteResponse } from './routes/http.js';
 export { createCloudServiceLayer } from './services/factory.js';
 export type { CloudServiceLayer, CloudServiceLayerOptions } from './services/factory.js';
+export { CloudApiKeyService } from './services/api-key-service.js';
+export type {
+  CloudApiKeyCreateServiceRequest,
+  CloudApiKeyCreateServiceResult,
+  CloudApiKeyListServiceRequest,
+  CloudApiKeyRevokeServiceRequest,
+  CloudApiKeyServiceOptions,
+} from './services/api-key-service.js';
 export { CloudAddressPoolService } from './services/address-pool-service.js';
 export type {
   CloudAddressPoolImportServiceRequest,

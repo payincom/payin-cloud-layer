@@ -36,10 +36,23 @@ export interface CloudApiKeyLookupResult {
   tenant?: CloudTenantContext;
 }
 
+export interface CloudApiKeyCreateInput {
+  presentedKey: string;
+  apiKey: CloudApiKey;
+  tenant: CloudTenantContext;
+  membership?: Pick<CloudOrganizationMember, 'role' | 'status'> | null;
+}
+
 export interface CloudApiKeyRepository {
   /** Implementations must verify the presented raw key and return only metadata/scope, never the raw secret. */
   findByPresentedKey(presentedKey: string): Promise<CloudApiKeyLookupResult> | CloudApiKeyLookupResult;
   recordSuccessfulUse?(apiKeyId: string, usedAt: Date): Promise<void> | void;
+}
+
+export interface CloudApiKeyManagementRepository extends CloudApiKeyRepository {
+  create(input: CloudApiKeyCreateInput): Promise<CloudApiKey> | CloudApiKey;
+  listForTenant(tenant: CloudTenantContext): Promise<CloudApiKey[]> | CloudApiKey[];
+  revokeForTenant(apiKeyId: string, tenant: CloudTenantContext, revokedAt: Date): Promise<CloudApiKey> | CloudApiKey;
 }
 
 export class CloudApiKeyAuthenticationError extends Error {
@@ -151,7 +164,7 @@ export class CloudApiKeyAuthenticator {
   }
 }
 
-export class InMemoryCloudApiKeyRepository implements CloudApiKeyRepository {
+export class InMemoryCloudApiKeyRepository implements CloudApiKeyManagementRepository {
   constructor(
     private readonly records: Array<CloudApiKeyLookupResult & { presentedKey: string }>
   ) {}
@@ -169,5 +182,32 @@ export class InMemoryCloudApiKeyRepository implements CloudApiKeyRepository {
     if (record?.apiKey) {
       record.apiKey.lastUsedAt = usedAt;
     }
+  }
+
+  create(input: CloudApiKeyCreateInput): CloudApiKey {
+    const apiKey = { ...input.apiKey };
+    this.records.push({
+      presentedKey: input.presentedKey,
+      apiKey,
+      tenant: normalizeCloudTenantContext(input.tenant),
+      membership: input.membership ?? { role: apiKey.role ?? 'viewer', status: 'active' },
+    });
+    return apiKey;
+  }
+
+  listForTenant(tenant: CloudTenantContext): CloudApiKey[] {
+    const normalizedTenant = normalizeCloudTenantContext(tenant);
+    return this.records
+      .map((record) => record.apiKey)
+      .filter((apiKey): apiKey is CloudApiKey => apiKey !== null && apiKey.organizationId === normalizedTenant.organizationId)
+      .map((apiKey) => ({ ...apiKey }));
+  }
+
+  revokeForTenant(apiKeyId: string, tenant: CloudTenantContext, revokedAt: Date): CloudApiKey {
+    const normalizedTenant = normalizeCloudTenantContext(tenant);
+    const record = this.records.find((candidate) => candidate.apiKey?.id === apiKeyId && candidate.apiKey?.organizationId === normalizedTenant.organizationId);
+    if (!record?.apiKey) throw new Error(`API key not found: ${apiKeyId}`);
+    record.apiKey.revokedAt = revokedAt;
+    return { ...record.apiKey };
   }
 }
