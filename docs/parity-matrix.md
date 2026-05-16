@@ -28,7 +28,7 @@ Status legend:
 
 ## Current verification gate
 
-`npm run verify` must pass before every push. Latest default verification after disposable DB scaffold: 28 test files / 116 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution.
+`npm run verify` must pass before every push. Latest default verification after SQL observability expansion: 29 test files / 119 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution for tenant/order/payment-link/address-pool/webhook/usage/audit adapters.
 
 ## Reference inventory snapshot
 
