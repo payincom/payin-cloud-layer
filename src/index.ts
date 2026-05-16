@@ -1,3 +1,20 @@
+export {
+  CloudApiKeyAuthenticationError,
+  CloudApiKeyAuthenticator,
+  CloudApiKeyAuthorizationError,
+  InMemoryCloudApiKeyRepository,
+  assertCloudApiKeyActive,
+  deriveCloudApiKeyCapabilities,
+  getCloudApiKeyStatus,
+} from './api-key.js';
+export type {
+  CloudApiKey,
+  CloudApiKeyLookupResult,
+  CloudApiKeyRepository,
+  CloudApiKeyScope,
+  CloudApiKeyStatus,
+} from './api-key.js';
+
 export { CloudProcessor } from './cloud-processor.js';
 export type { CloudProcessorOptions, CloudProtocol } from './cloud-processor.js';
 
