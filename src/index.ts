@@ -49,6 +49,9 @@ export type { CloudPaymentLinkRepository } from './adapters/repositories/payment
 export { InMemoryCloudWebhookRepository } from './adapters/repositories/webhook-adapter.js';
 export type { MutableCloudWebhookEndpointRepository } from './adapters/repositories/webhook-adapter.js';
 
+export { PgSqlExecutor } from './adapters/repositories/pg-executor.js';
+export type { PgExecutorOptions } from './adapters/repositories/pg-executor.js';
+
 export {
   CLOUD_LAYER_MINIMAL_SCHEMA_TABLES,
   applyCloudLayerSchema,
