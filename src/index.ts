@@ -63,9 +63,11 @@ export {
 export {
   SqlCloudAddressPoolRepository,
   SqlCloudApiKeyRepository,
+  SqlCloudAuditTrail,
   SqlCloudOrderRepository,
   SqlCloudPaymentLinkRepository,
   SqlCloudTenantResolver,
+  SqlCloudUsageMeter,
   SqlCloudWebhookRepository,
   SqlQueryRecorder,
   createSqlTenantWhereClause,
