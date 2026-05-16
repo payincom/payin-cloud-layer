@@ -163,8 +163,13 @@ export class SqlCloudWebhookRepository implements MutableCloudWebhookEndpointRep
     this.tableName = rejectUnsafeSqlIdentifier(options.tableName ?? 'webhook_endpoints');
   }
 
-  async upsert(_input: CloudWebhookEndpointInput): Promise<CloudWebhookEndpoint> {
-    throw new Error('SqlCloudWebhookRepository.upsert is adapter-pending');
+  async upsert(input: CloudWebhookEndpointInput): Promise<CloudWebhookEndpoint> {
+    const endpoint = normalizeCloudWebhookEndpoint(input);
+    const result = await this.db.query<Record<string, unknown>>(
+      `INSERT INTO ${this.tableName} (id, organization_id, url, event_types, signing_secret_ref, enabled) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO UPDATE SET url = EXCLUDED.url, event_types = EXCLUDED.event_types, signing_secret_ref = EXCLUDED.signing_secret_ref, enabled = EXCLUDED.enabled RETURNING *`,
+      [endpoint.id, endpoint.tenant.organizationId, endpoint.url, endpoint.eventTypes, endpoint.signingSecretRef, endpoint.enabled]
+    );
+    return mapWebhookRow(result.rows[0], endpoint.tenant);
   }
 
   async listForTenant(tenant: CloudTenantContext): Promise<CloudWebhookEndpoint[]> {
@@ -196,8 +201,22 @@ export class SqlCloudOrderRepository implements CloudOrderRepository {
     this.tableName = rejectUnsafeSqlIdentifier(options.tableName ?? 'orders');
   }
 
-  async save(_order: CloudOrder): Promise<NormalizedCloudOrder> {
-    throw new Error('SqlCloudOrderRepository.save is adapter-pending');
+  async save(order: CloudOrder): Promise<NormalizedCloudOrder> {
+    const normalized = normalizeCloudOrder(order);
+    const result = await this.db.query<Record<string, unknown>>(
+      `INSERT INTO ${this.tableName} (id, organization_id, order_reference, amount, currency, chain_id, status, confirmed_received) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [
+        normalized.id,
+        normalized.tenant.organizationId,
+        normalized.orderReference,
+        normalized.amount,
+        normalized.currency,
+        normalized.chainId,
+        normalized.status,
+        normalized.confirmedReceived,
+      ]
+    );
+    return mapOrderRow(result.rows[0], normalized.tenant);
   }
 
   async findByTenant(orderId: string, tenant: CloudTenantContext): Promise<NormalizedCloudOrder | null> {
