@@ -1,5 +1,11 @@
 export { CloudOrderService } from './services/order-service.js';
 export type { CloudOrderCreateServiceRequest, CloudOrderServiceOptions } from './services/order-service.js';
+export { CloudPaymentLinkService } from './services/payment-link-service.js';
+export type {
+  CloudPaymentLinkCreateServiceRequest,
+  CloudPaymentLinkPublishServiceRequest,
+  CloudPaymentLinkServiceOptions,
+} from './services/payment-link-service.js';
 
 export {
   IntegrationSafetyError,
