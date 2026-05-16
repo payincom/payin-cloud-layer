@@ -34,6 +34,31 @@ The default `AllowAllEntitlements` exists for local tests only. Production Cloud
 
 `HostedConfigProvider` abstracts Cloud-hosted runtime configuration and secret references. It should point to secret refs, not raw secrets.
 
+## Route service layer
+
+API routes should use the service layer rather than calling repositories directly:
+
+```text
+HTTP/SDK route
+  -> CloudOrderService / CloudPaymentLinkService / CloudWebhookService
+    -> CloudApiKeyAuthenticator
+    -> EntitlementProvider
+    -> HostedConfigProvider, when runtime chain/token config is required
+    -> Repository-backed adapter
+    -> UsageMeter
+    -> CloudAuditTrail
+```
+
+`createCloudServiceLayer` assembles these services from `CloudLayerPorts`. This keeps tenant/auth/entitlement/billing/audit behavior centralized and makes future extraction from the old Cloud repo route-by-route instead of copying route/database coupling.
+
+Current service coverage:
+
+- `CloudOrderService.createOrder`
+- `CloudPaymentLinkService.createPaymentLink`
+- `CloudPaymentLinkService.publishPaymentLink`
+- `CloudWebhookService.upsertEndpoint`
+- `CloudWebhookService.createTestDelivery`
+
 ## Migration from current PayIn Cloud repo
 
 Use the current `/data/openclaw/workspace/payin` Cloud repo as a source of business semantics, not as code to bulk-copy. Migrate one boundary at a time:

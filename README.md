@@ -19,6 +19,8 @@ It must not become a fork of PayIn Open. PayIn Open is the complete free/self-ho
 - `CloudManager`: manager overlay that injects tenant scope and wraps operations with entitlement, billing, and audit hooks.
 - `CloudTenantResolver`: route/runtime adapter interface for resolving active tenant membership.
 - `HostedConfigProvider`: hosted config abstraction using secret refs rather than raw secrets.
+- `CloudOrderService`, `CloudPaymentLinkService`, `CloudWebhookService`: API-route-ready services that compose API-key auth, entitlements, hosted config, repositories, usage, and audit.
+- `createCloudServiceLayer`: factory that assembles the route service layer from `CloudLayerPorts`.
 
 ## Development
 
@@ -30,6 +32,28 @@ npm run verify
 ## Architecture
 
 See [`docs/architecture.md`](docs/architecture.md).
+
+## Service layer example
+
+```ts
+import { createCloudServiceLayer } from '@payin/cloud-layer';
+
+const services = createCloudServiceLayer({
+  ports,
+  entitlementProvider,
+  webhookSigner,
+});
+
+await services.orders.createOrder({
+  apiKey: request.headers.authorization,
+  orderReference: 'merchant-order-1',
+  amount: '10.00',
+  currency: 'USDC',
+  chainId: 'ethereum-sepolia',
+});
+```
+
+Routes should stay thin: parse request input, call a Cloud service, then serialize the response. Tenant/auth/entitlement/usage/audit behavior belongs in this package rather than duplicated in route handlers.
 
 ## Boundary rule
 
