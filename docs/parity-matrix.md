@@ -23,12 +23,12 @@ Status legend:
 | Webhooks/notifications | `packages/notification/tests/webhook-notifier.test.ts` | `src/webhooks.ts`, `src/cloud-manager.ts` | `tests/unit/webhook-contract.test.ts` | contracted / adapter-pending |
 | Processor runtime adapter | shared processor compatibility | `src/cloud-processor.ts` | `tests/unit/cloud-processor.test.ts` | contracted / adapter-pending |
 | Hosted runtime readiness/smoke | Cloud ops/readiness | planned | planned | planned |
-| Concrete DB/API adapters | old Cloud DB/routes | planned | planned | planned |
+| Concrete DB/API adapters | old Cloud DB/routes | `src/adapters/repositories/*` | `tests/unit/repository-backed-adapter-design.test.ts`, `tests/unit/sql-adapter-contract.test.ts`, `tests/unit/sql-auth-adapter-contract.test.ts` | partially contracted / implementation-pending |
 | Disposable integration tests | old Cloud E2E behavior | planned | planned | planned |
 
 ## Current verification gate
 
-`npm run verify` must pass before every push. As of this matrix update, the suite has 12 test files / 74 tests.
+`npm run verify` must pass before every push. Latest verified suite after SQL auth adapter contracts: 21 test files / 101 tests.
 
 ## Reference inventory snapshot
 

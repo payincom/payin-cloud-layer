@@ -44,9 +44,12 @@ export { InMemoryCloudWebhookRepository } from './adapters/repositories/webhook-
 export type { MutableCloudWebhookEndpointRepository } from './adapters/repositories/webhook-adapter.js';
 
 export {
+  SqlCloudAddressPoolRepository,
   SqlCloudApiKeyRepository,
   SqlCloudOrderRepository,
+  SqlCloudPaymentLinkRepository,
   SqlCloudTenantResolver,
+  SqlCloudWebhookRepository,
   SqlQueryRecorder,
   createSqlTenantWhereClause,
   rejectUnsafeSqlIdentifier,
