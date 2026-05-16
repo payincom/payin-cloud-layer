@@ -1,8 +1,11 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import {
   PgSqlExecutor,
+  SqlCloudAddressPoolRepository,
   SqlCloudOrderRepository,
+  SqlCloudPaymentLinkRepository,
   SqlCloudTenantResolver,
+  SqlCloudWebhookRepository,
   applyCloudLayerSchema,
   assertDisposableIntegrationDatabaseUrl,
   getCloudLayerMinimalSchemaSql,
@@ -64,6 +67,42 @@ describe.runIf(enabled)('disposable database integration', () => {
       orderReference: 'ref-integration',
     });
     await expect(orders.findByTenant('order-integration', { organizationId: 'org-other' })).resolves.toBeNull();
+
+    const paymentLinks = new SqlCloudPaymentLinkRepository(executor);
+    await paymentLinks.save({
+      id: 'plink-integration',
+      tenant: { organizationId: 'org-integration' },
+      title: 'Integration checkout',
+      amount: '25.50',
+      currency: 'USDC',
+      chainOptions: ['ethereum-sepolia'],
+      status: 'draft',
+      inventoryReserved: 0,
+    });
+    await expect(paymentLinks.findByTenant('plink-integration', { organizationId: 'org-integration' })).resolves.toMatchObject({
+      id: 'plink-integration',
+      tenant: { organizationId: 'org-integration' },
+    });
+
+    const addressPool = new SqlCloudAddressPoolRepository(executor);
+    await addressPool.import([{ tenant: { organizationId: 'org-integration' }, address: '0x1111111111111111111111111111111111111111', protocol: 'evm', state: 'idle' }]);
+    await expect(addressPool.listByTenant({ organizationId: 'org-integration' })).resolves.toMatchObject([
+      { address: '0x1111111111111111111111111111111111111111', tenant: { organizationId: 'org-integration' } },
+    ]);
+
+    const webhooks = new SqlCloudWebhookRepository(executor);
+    await webhooks.upsert({
+      id: 'wh-integration',
+      tenant: { organizationId: 'org-integration' },
+      url: 'https://merchant.example/webhook',
+      eventTypes: ['order.completed'],
+      signingSecretRef: 'secret://integration/webhook',
+      enabled: true,
+    });
+    await expect(webhooks.getForTenant('wh-integration', { organizationId: 'org-integration' })).resolves.toMatchObject({
+      id: 'wh-integration',
+      tenant: { organizationId: 'org-integration' },
+    });
   });
 });
 
