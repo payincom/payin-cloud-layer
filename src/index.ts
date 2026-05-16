@@ -1,4 +1,16 @@
 export {
+  CloudLayerApplication,
+  CloudLayerPortError,
+  createCloudLayerPorts,
+} from './ports.js';
+export type {
+  CloudAddressPoolPort,
+  CloudLayerPorts,
+  CloudOrderPort,
+  CloudPaymentLinkPort,
+} from './ports.js';
+
+export {
   createRuntimeReadinessReport,
   redactRuntimeDiagnostic,
   summarizeRuntimeReadiness,
