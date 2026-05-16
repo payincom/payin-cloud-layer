@@ -1,3 +1,5 @@
+export { createCloudServiceLayer } from './services/factory.js';
+export type { CloudServiceLayer, CloudServiceLayerOptions } from './services/factory.js';
 export { CloudOrderService } from './services/order-service.js';
 export type { CloudOrderCreateServiceRequest, CloudOrderServiceOptions } from './services/order-service.js';
 export { CloudPaymentLinkService } from './services/payment-link-service.js';
