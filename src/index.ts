@@ -1,4 +1,26 @@
 export {
+  InMemoryCloudAuditTrail,
+  StaticRiskDecisionProvider,
+  SupportAccessError,
+  createCloudAuditEvent,
+  createSupportAccessGrant,
+  redactCloudAuditMetadata,
+  requireSupportAccess,
+} from './audit-risk.js';
+export type {
+  CloudAuditActor,
+  CloudAuditActorType,
+  CloudAuditTrail,
+  CloudAuditTrailEvent,
+  CloudAuditTrailQuery,
+  CloudRiskDecision,
+  CloudRiskDecisionInput,
+  CloudRiskDecisionProvider,
+  SupportAccessGrant,
+  SupportAccessGrantInput,
+} from './audit-risk.js';
+
+export {
   AddressPoolLimitExceededError,
   AddressPoolStateError,
   AddressPoolValidationError,
