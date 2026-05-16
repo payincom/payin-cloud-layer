@@ -1,4 +1,16 @@
 export {
+  createRuntimeReadinessReport,
+  redactRuntimeDiagnostic,
+  summarizeRuntimeReadiness,
+} from './runtime-readiness.js';
+export type {
+  RuntimeReadinessCheck,
+  RuntimeReadinessReport,
+  RuntimeReadinessStatus,
+  RuntimeReadinessSummary,
+} from './runtime-readiness.js';
+
+export {
   InMemoryCloudAuditTrail,
   StaticRiskDecisionProvider,
   SupportAccessError,
