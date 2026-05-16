@@ -23,6 +23,27 @@ export type {
 } from './runtime-readiness.js';
 
 export {
+  InMemoryCloudAddressPoolRepository,
+  RepositoryBackedAddressPoolPort,
+} from './adapters/repositories/address-pool-adapter.js';
+export type { CloudAddressPoolRepository } from './adapters/repositories/address-pool-adapter.js';
+
+export {
+  InMemoryCloudOrderRepository,
+  RepositoryBackedOrderPort,
+} from './adapters/repositories/order-adapter.js';
+export type { CloudOrderRepository } from './adapters/repositories/order-adapter.js';
+
+export {
+  InMemoryCloudPaymentLinkRepository,
+  RepositoryBackedPaymentLinkPort,
+} from './adapters/repositories/payment-link-adapter.js';
+export type { CloudPaymentLinkRepository } from './adapters/repositories/payment-link-adapter.js';
+
+export { InMemoryCloudWebhookRepository } from './adapters/repositories/webhook-adapter.js';
+export type { MutableCloudWebhookEndpointRepository } from './adapters/repositories/webhook-adapter.js';
+
+export {
   InMemoryCloudAuditTrail,
   StaticRiskDecisionProvider,
   SupportAccessError,
