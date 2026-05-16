@@ -1,3 +1,11 @@
+export { createCloudOrderRouteHandlers } from './routes/order-routes.js';
+export type { CloudOrderCreateRouteBody, CloudOrderRouteHandlersOptions } from './routes/order-routes.js';
+export {
+  CloudRouteInputError,
+  extractBearerApiKey,
+  toCloudRouteErrorResponse,
+} from './routes/http.js';
+export type { CloudRouteErrorBody, CloudRouteRequest, CloudRouteResponse } from './routes/http.js';
 export { createCloudServiceLayer } from './services/factory.js';
 export type { CloudServiceLayer, CloudServiceLayerOptions } from './services/factory.js';
 export { CloudAddressPoolService } from './services/address-pool-service.js';
