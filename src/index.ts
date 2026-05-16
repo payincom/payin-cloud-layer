@@ -215,10 +215,13 @@ export {
   CloudWebhookSecretError,
   InMemoryCloudWebhookEndpointRepository,
   StaticCloudWebhookSigner,
+  calculateWebhookRetryDelayMs,
   createCloudWebhookDelivery,
+  createWebhookSignaturePayload,
   filterWebhookEndpointsForEvent,
   normalizeCloudWebhookEndpoint,
   redactCloudWebhookEndpoint,
+  shouldRetryWebhookDelivery,
 } from './webhooks.js';
 export type {
   CloudWebhookDelivery,
@@ -229,6 +232,7 @@ export type {
   CloudWebhookEventType,
   CloudWebhookSigner,
   RedactedCloudWebhookEndpoint,
+  WebhookRetryDecisionInput,
 } from './webhooks.js';
 
 export {

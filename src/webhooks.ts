@@ -171,6 +171,39 @@ export class StaticCloudWebhookSigner implements CloudWebhookSigner {
   }
 }
 
+export interface WebhookRetryDecisionInput {
+  statusCode?: number;
+  errorCode?: string;
+}
+
+export function createWebhookSignaturePayload(input: { timestamp: number; body: string }): string {
+  return `${input.timestamp}.${input.body}`;
+}
+
+export function shouldRetryWebhookDelivery(input: WebhookRetryDecisionInput): boolean {
+  if (input.errorCode) return true;
+  if (input.statusCode === undefined) return false;
+  return input.statusCode === 408 || input.statusCode === 409 || input.statusCode === 425 || input.statusCode === 429 || input.statusCode >= 500;
+}
+
+export function calculateWebhookRetryDelayMs(input: {
+  attempt: number;
+  baseDelayMs?: number;
+  maxDelayMs?: number;
+  jitterRatio?: number;
+  random?: () => number;
+}): number {
+  const baseDelayMs = input.baseDelayMs ?? 1000;
+  const maxDelayMs = input.maxDelayMs ?? 30000;
+  const attempt = Math.max(1, input.attempt);
+  const rawDelay = Math.min(maxDelayMs, baseDelayMs * 2 ** (attempt - 1));
+  const jitterRatio = input.jitterRatio ?? 0;
+  if (jitterRatio <= 0) return rawDelay;
+  const random = input.random ?? Math.random;
+  const jitter = rawDelay * jitterRatio * (random() * 2 - 1);
+  return Math.round(Math.min(maxDelayMs, Math.max(0, rawDelay + jitter)));
+}
+
 export class InMemoryCloudWebhookEndpointRepository implements CloudWebhookEndpointRepository {
   constructor(private readonly endpoints: CloudWebhookEndpoint[]) {}
 
