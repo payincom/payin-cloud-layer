@@ -101,8 +101,25 @@ export class SqlCloudPaymentLinkRepository implements CloudPaymentLinkRepository
     this.tableName = rejectUnsafeSqlIdentifier(options.tableName ?? 'paymentlinks');
   }
 
-  async save(_link: CloudPaymentLink): Promise<NormalizedCloudPaymentLink> {
-    throw new Error('SqlCloudPaymentLinkRepository.save is adapter-pending');
+  async save(link: CloudPaymentLink): Promise<NormalizedCloudPaymentLink> {
+    const normalized = normalizeCloudPaymentLink(link);
+    const result = await this.db.query<Record<string, unknown>>(
+      `INSERT INTO ${this.tableName} (id, organization_id, title, description, amount, currency, chain_options, status, slug, inventory_total, inventory_reserved) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [
+        normalized.id,
+        normalized.tenant.organizationId,
+        normalized.title,
+        normalized.description,
+        normalized.amount,
+        normalized.currency,
+        normalized.chainOptions,
+        normalized.status,
+        normalized.slug,
+        normalized.inventoryTotal,
+        normalized.inventoryReserved,
+      ]
+    );
+    return mapPaymentLinkRow(result.rows[0], normalized.tenant);
   }
 
   async findByTenant(paymentLinkId: string, tenant: CloudTenantContext): Promise<NormalizedCloudPaymentLink | null> {
@@ -138,8 +155,25 @@ export class SqlCloudAddressPoolRepository implements CloudAddressPoolRepository
     this.tableName = rejectUnsafeSqlIdentifier(options.tableName ?? 'address_pool');
   }
 
-  async import(_entries: CloudAddressPoolEntry[]): Promise<NormalizedCloudAddressPoolEntry[]> {
-    throw new Error('SqlCloudAddressPoolRepository.import is adapter-pending');
+  async import(entries: CloudAddressPoolEntry[]): Promise<NormalizedCloudAddressPoolEntry[]> {
+    const imported: NormalizedCloudAddressPoolEntry[] = [];
+    for (const entry of entries.map(normalizeCloudAddressPoolEntry)) {
+      const result = await this.db.query<Record<string, unknown>>(
+        `INSERT INTO ${this.tableName} (address, organization_id, protocol, state, derivation_index, master_public_key_ref, deposit_reference, order_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        [
+          entry.address,
+          entry.tenant.organizationId,
+          entry.protocol,
+          entry.state,
+          entry.derivationIndex,
+          entry.masterPublicKeyRef,
+          entry.depositReference,
+          entry.orderId,
+        ]
+      );
+      imported.push(mapAddressPoolRow(result.rows[0], entry.tenant));
+    }
+    return imported;
   }
 
   async listByTenant(tenant: CloudTenantContext): Promise<NormalizedCloudAddressPoolEntry[]> {
@@ -151,8 +185,13 @@ export class SqlCloudAddressPoolRepository implements CloudAddressPoolRepository
     return result.rows.map((row) => mapAddressPoolRow(row, tenant));
   }
 
-  async replace(_entry: CloudAddressPoolEntry): Promise<NormalizedCloudAddressPoolEntry> {
-    throw new Error('SqlCloudAddressPoolRepository.replace is adapter-pending');
+  async replace(entry: CloudAddressPoolEntry): Promise<NormalizedCloudAddressPoolEntry> {
+    const normalized = normalizeCloudAddressPoolEntry(entry);
+    const result = await this.db.query<Record<string, unknown>>(
+      `UPDATE ${this.tableName} SET state = $1, deposit_reference = $2, order_id = $3 WHERE address = $4 AND organization_id = $5 RETURNING *`,
+      [normalized.state, normalized.depositReference, normalized.orderId, normalized.address, normalized.tenant.organizationId]
+    );
+    return mapAddressPoolRow(result.rows[0], normalized.tenant);
   }
 }
 
