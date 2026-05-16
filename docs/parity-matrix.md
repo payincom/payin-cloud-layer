@@ -17,10 +17,10 @@ Status legend:
 | Hosted tenant config | config-management routes | `src/hosted-config.ts` | `tests/unit/hosted-config.test.ts` | contracted / adapter-pending |
 | Billing usage metering | hosted billing semantics | `src/usage-meter.ts`, `src/hooks.ts` | `tests/unit/billing-usage.test.ts` | contracted / adapter-pending |
 | Audit/risk/support | `packages/auth/src/middleware/audit-middleware.ts` | `src/audit-risk.ts` | `tests/unit/audit-risk-contract.test.ts` | contracted / adapter-pending |
-| Orders | `orders`, multi-tenant API tests | `src/orders.ts`, `src/cloud-manager.ts` | `tests/unit/order-contract.test.ts`, `tests/unit/cloud-manager.test.ts` | contracted / adapter-pending |
-| Payment links | `apps/api/tests/payment-links-api.test.ts` | `src/payment-links.ts`, `src/cloud-manager.ts` | `tests/unit/payment-link-contract.test.ts` | contracted / adapter-pending |
+| Orders | `orders`, multi-tenant API tests | `src/orders.ts`, `src/cloud-manager.ts`, `src/services/order-service.ts` | `tests/unit/order-contract.test.ts`, `tests/unit/cloud-manager.test.ts`, `tests/unit/cloud-order-service.test.ts` | contracted / service-covered / adapter-pending |
+| Payment links | `apps/api/tests/payment-links-api.test.ts` | `src/payment-links.ts`, `src/cloud-manager.ts`, `src/services/payment-link-service.ts` | `tests/unit/payment-link-contract.test.ts`, `tests/unit/cloud-payment-link-service.test.ts` | contracted / service-covered / adapter-pending |
 | Address pool/deposits | `apps/api/tests/address-pool-summary-api.test.ts` | `src/address-pool.ts`, `src/cloud-processor.ts`, `src/cloud-manager.ts` | `tests/unit/address-pool-contract.test.ts`, `tests/unit/cloud-processor.test.ts` | contracted / adapter-pending |
-| Webhooks/notifications | `packages/notification/tests/webhook-notifier.test.ts` | `src/webhooks.ts`, `src/cloud-manager.ts` | `tests/unit/webhook-contract.test.ts` | contracted / adapter-pending |
+| Webhooks/notifications | `packages/notification/tests/webhook-notifier.test.ts` | `src/webhooks.ts`, `src/cloud-manager.ts`, `src/services/webhook-service.ts` | `tests/unit/webhook-contract.test.ts`, `tests/unit/cloud-webhook-service.test.ts` | contracted / service-covered / adapter-pending |
 | Processor runtime adapter | shared processor compatibility | `src/cloud-processor.ts` | `tests/unit/cloud-processor.test.ts` | contracted / adapter-pending |
 | Hosted runtime readiness/smoke | Cloud ops/readiness | planned | planned | planned |
 | Concrete DB/API adapters | old Cloud DB/routes | `src/adapters/repositories/*` | `tests/unit/repository-backed-adapter-design.test.ts`, `tests/unit/sql-adapter-contract.test.ts`, `tests/unit/sql-auth-adapter-contract.test.ts` | partially contracted / implementation-pending |
@@ -28,7 +28,7 @@ Status legend:
 
 ## Current verification gate
 
-`npm run verify` must pass before every push. Latest default verification after SQL observability expansion: 29 test files / 119 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution for tenant/order/payment-link/address-pool/webhook/usage/audit adapters.
+`npm run verify` must pass before every push. Latest default verification after Cloud service layer expansion: 33 test files / 130 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution for tenant/order/payment-link/address-pool/webhook/usage/audit adapters.
 
 ## Reference inventory snapshot
 
@@ -43,9 +43,8 @@ Read-only old Cloud inventory discovered for future adapter extraction:
 
 ## Next planned slice
 
-Concrete adapter design and disposable integration tests:
+Cloud API route extraction:
 
-- start with auth/org/API-key adapter contracts against fake repositories
-- then order/payment-link/address-pool adapters
-- then notification/webhook delivery adapters
-- only after that, wire to disposable DB/runtime tests
+- add address-pool service layer and service-factory coverage
+- map old route request/response shapes onto service calls
+- then add route harness tests that keep HTTP handlers thin and tenant-safe
