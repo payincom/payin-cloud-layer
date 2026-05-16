@@ -70,7 +70,7 @@ describe('Cloud organization business contracts', () => {
     });
 
     expect(tenant).toMatchObject({ organizationId: 'org-pro', tenantId: 'org-pro', plan: 'pro' });
-    expect(await provider.getTenantConfig(tenant)).toEqual({
+    expect(await provider.getTenantConfig(tenant)).toMatchObject({
       tenant,
       limits: { monthlyOrderLimit: 5000 },
       enabledChains: ['ethereum-sepolia'],

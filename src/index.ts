@@ -68,8 +68,26 @@ export type {
   CloudTenantRole,
 } from './tenant-resolver.js';
 
-export { StaticHostedConfigProvider } from './hosted-config.js';
-export type { HostedConfigProvider, HostedRuntimeConfig } from './hosted-config.js';
+export {
+  CloudHostedConfigError,
+  DEFAULT_HOSTED_ENABLED_CHAINS,
+  DEFAULT_HOSTED_ENABLED_TOKENS,
+  DEFAULT_HOSTED_PLAN_LIMITS,
+  DefaultHostedConfigProvider,
+  HostedLimitExceededError,
+  StaticHostedConfigProvider,
+  assertHostedLimit,
+  mergeHostedRuntimeConfig,
+  normalizeHostedRuntimeConfig,
+} from './hosted-config.js';
+export type {
+  HostedConfigProvider,
+  HostedLimitDecision,
+  HostedRuntimeConfig,
+  HostedRuntimeConfigInput,
+  HostedRuntimeLimits,
+  HostedSecretRefs,
+} from './hosted-config.js';
 
 export {
   CLOUD_ROLE_CAPABILITIES,

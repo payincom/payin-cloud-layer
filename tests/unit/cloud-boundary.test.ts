@@ -38,11 +38,11 @@ describe('Cloud overlay boundary utilities', () => {
       webhookSecretRef: 'secret://tenant/webhook',
     });
 
-    expect(await provider.getTenantConfig({ organizationId: 'org-1' })).toEqual({
-      tenant: { organizationId: 'org-1' },
+    expect(await provider.getTenantConfig({ organizationId: 'org-1' })).toMatchObject({
+      tenant: { organizationId: 'org-1', tenantId: 'org-1' },
       enabledChains: ['ethereum-sepolia'],
       limits: { monthlyOrderLimit: 1000 },
-      webhookSecretRef: 'secret://tenant/webhook',
+      secretRefs: { webhookSigningSecretRef: 'secret://tenant/webhook' },
     });
   });
 });
