@@ -2,10 +2,13 @@ import { afterAll, describe, expect, it } from 'vitest';
 import {
   PgSqlExecutor,
   SqlCloudAddressPoolRepository,
+  SqlCloudAuditTrail,
   SqlCloudOrderRepository,
   SqlCloudPaymentLinkRepository,
   SqlCloudTenantResolver,
+  SqlCloudUsageMeter,
   SqlCloudWebhookRepository,
+  createCloudAuditEvent,
   applyCloudLayerSchema,
   assertDisposableIntegrationDatabaseUrl,
   getCloudLayerMinimalSchemaSql,
@@ -103,6 +106,15 @@ describe.runIf(enabled)('disposable database integration', () => {
       id: 'wh-integration',
       tenant: { organizationId: 'org-integration' },
     });
+
+    const usage = new SqlCloudUsageMeter(executor);
+    await usage.recordUsage({ tenant: { organizationId: 'org-integration' }, type: 'order.created', subjectId: 'order-integration', quantity: 1, occurredAt: new Date('2026-05-16T22:55:00.000Z') });
+    await expect(usage.listUsage({ tenantId: 'org-integration', type: 'order.created' })).resolves.toMatchObject([
+      { tenant: { organizationId: 'org-integration' }, type: 'order.created', subjectId: 'order-integration' },
+    ]);
+
+    const audit = new SqlCloudAuditTrail(executor);
+    await audit.record(createCloudAuditEvent({ tenant: { organizationId: 'org-integration' }, action: 'orders:create', actor: { type: 'api_key', id: 'key-integration' }, subjectId: 'order-integration' }));
   });
 });
 
