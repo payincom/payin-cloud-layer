@@ -35,6 +35,24 @@ export type {
 } from './api-key.js';
 
 export {
+  CloudOrderStateError,
+  CloudOrderValidationError,
+  createCloudOrderDraft,
+  createCloudOrderStatusSummary,
+  createCloudPaymentPageUrl,
+  markCloudOrderCompleted,
+  normalizeCloudOrder,
+} from './orders.js';
+export type {
+  CloudOrder,
+  CloudOrderDraft,
+  CloudOrderDraftInput,
+  CloudOrderStatus,
+  CloudOrderStatusSummary,
+  NormalizedCloudOrder,
+} from './orders.js';
+
+export {
   CloudPaymentLinkInventoryError,
   CloudPaymentLinkStateError,
   CloudPaymentLinkValidationError,
