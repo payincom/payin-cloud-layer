@@ -30,12 +30,22 @@ Status legend:
 
 `npm run verify` must pass before every push. As of this matrix update, the suite has 12 test files / 74 tests.
 
+## Reference inventory snapshot
+
+Read-only old Cloud inventory discovered for future adapter extraction:
+
+- API routes: `apps/api/src/routes/address-pool.ts`, `apps/api/src/routes/api-chains.ts`, `apps/api/src/routes/api-deposits.ts`, `apps/api/src/routes/api-keys.ts`, `apps/api/src/routes/api-payment-links.ts`, `apps/api/src/routes/audit.ts`, `apps/api/src/routes/auth.ts`, `apps/api/src/routes/chains.ts`, `apps/api/src/routes/config-diagnostics.ts`, `apps/api/src/routes/config-management.ts`, `apps/api/src/routes/config.ts`, `apps/api/src/routes/deposits.ts`, `apps/api/src/routes/notifications.ts`, `apps/api/src/routes/order-status.ts`, `apps/api/src/routes/orders.ts`, `apps/api/src/routes/organizations.ts`, `apps/api/src/routes/pay-deposit.ts`, `apps/api/src/routes/pay-order.ts`, `apps/api/src/routes/payment-links.ts`, `apps/api/src/routes/tokens.ts`.
+- Auth package: `packages/auth/src/auth-manager.ts`, `packages/auth/src/middleware/audit-middleware.ts`, `packages/auth/src/middleware/auth-middleware.ts`, `packages/auth/src/middleware/permission-middleware.ts`, `packages/auth/src/organization-manager.ts`, `packages/auth/src/permissions.ts`, `packages/auth/src/types/organizations.ts`, `packages/auth/src/validation.ts`.
+- Manager/config: `packages/manager/src/config-provider-adapter.ts`, `packages/manager/src/config/config-metadata.ts`, `packages/manager/src/config/config-transformer.ts`, `packages/manager/src/services/payment-link.service.ts`, `packages/manager/src/validators/*`.
+- Notification/webhook: `packages/notification/src/notification-service.ts`, `packages/notification/src/notifiers/webhook-notifier.ts`, `packages/notification/src/queue/notification-queue.ts`, `packages/notification/src/repository/notification.repository.ts`, `packages/notification/src/types/*`, `packages/notification/src/utils/event-mapper.ts`, `packages/notification/src/utils/retry-strategy.ts`, `packages/notification/src/utils/signature.ts`.
+- Processor/payment: `packages/processor/src/repositories/address-pool.repository.ts`, `packages/processor/src/repositories/order.repository.ts`, `packages/processor/src/services/address-import-validator.ts`, `packages/processor/src/services/deposit-service.ts`, `packages/processor/src/services/order-service.ts`, `packages/processor/src/core/order-state-machine.ts`, `packages/processor/src/core/processor-config-manager.ts`.
+- Public checkout/shared UI reference: `packages/shared/src/checkout/OrderPage.tsx`, `packages/shared/src/checkout/renderOrder.tsx`, `packages/shared/src/payment-link-checkout-template.ts`.
+
 ## Next planned slice
 
-Hosted runtime readiness/smoke contract:
+Concrete adapter design and disposable integration tests:
 
-- tenant-scoped health/readiness summary
-- chain/token/config readiness
-- monitor status shape
-- actionable failure messages
-- no secret leakage in diagnostics
+- start with auth/org/API-key adapter contracts against fake repositories
+- then order/payment-link/address-pool adapters
+- then notification/webhook delivery adapters
+- only after that, wire to disposable DB/runtime tests
