@@ -1,7 +1,8 @@
 import { normalizeCloudTenantContext, type CloudTenantContext, type NormalizedCloudTenantContext } from './context.js';
+import type { CloudMembershipStatus, CloudOrganizationRole } from './organization.js';
 
-export type CloudTenantRole = 'owner' | 'admin' | 'member' | 'viewer' | string;
-export type CloudTenantMembershipStatus = 'active' | 'pending' | 'suspended' | string;
+export type CloudTenantRole = CloudOrganizationRole;
+export type CloudTenantMembershipStatus = CloudMembershipStatus;
 
 export interface CloudTenantMembership {
   userId: string;

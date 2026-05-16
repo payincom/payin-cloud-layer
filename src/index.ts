@@ -53,3 +53,24 @@ export type {
 
 export { StaticHostedConfigProvider } from './hosted-config.js';
 export type { HostedConfigProvider, HostedRuntimeConfig } from './hosted-config.js';
+
+export {
+  CLOUD_ROLE_CAPABILITIES,
+  CloudMembershipStatuses,
+  CloudOrganizationPlans,
+  CloudOrganizationRoles,
+  hasCloudRoleCapability,
+  isCloudMembershipStatus,
+  isCloudOrganizationPlan,
+  isCloudOrganizationRole,
+  verifyCloudMembership,
+} from './organization.js';
+export type {
+  CloudMembershipStatus,
+  CloudMembershipVerificationResult,
+  CloudOrganization,
+  CloudOrganizationMember,
+  CloudOrganizationPlan,
+  CloudOrganizationRole,
+  CloudOrganizationWithRole,
+} from './organization.js';

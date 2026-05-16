@@ -12,10 +12,6 @@
     "test": "vitest run",
     "verify": "npm run type-check && npm run build && npm test"
   },
-  "dependencies": {
-    "@payin/processor": "file:../payin-open/packages/processor",
-    "@payin/shared": "file:../payin-open/packages/shared"
-  },
   "devDependencies": {
     "@types/node": "^20.19.24",
     "typescript": "^5.9.3",

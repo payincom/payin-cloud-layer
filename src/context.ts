@@ -1,4 +1,6 @@
-export type CloudPlan = 'free' | 'pro' | 'enterprise' | string;
+import type { CloudOrganizationPlan } from './organization.js';
+
+export type CloudPlan = CloudOrganizationPlan | string;
 export type CloudEnvironment = 'production' | 'sandbox' | 'development' | string;
 
 /**
