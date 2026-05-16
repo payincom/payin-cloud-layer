@@ -3,6 +3,9 @@ import { normalizeCloudPaymentLink, type CloudPaymentLink, type NormalizedCloudP
 import { normalizeCloudAddressPoolEntry, type CloudAddressPoolEntry, type NormalizedCloudAddressPoolEntry } from '../../address-pool.js';
 import { normalizeCloudWebhookEndpoint, type CloudWebhookEndpoint, type CloudWebhookEndpointInput } from '../../webhooks.js';
 import { normalizeCloudTenantContext, type CloudTenantContext } from '../../context.js';
+import { createUsageDedupeKey, normalizeUsageEvent, type RequiredUsageEvent, type UsageMeter, type UsageQuery } from '../../usage-meter.js';
+import type { CloudUsageEvent } from '../../hooks.js';
+import type { CloudAuditTrail, CloudAuditTrailEvent, CloudAuditTrailQuery } from '../../audit-risk.js';
 import type { CloudApiKeyLookupResult, CloudApiKeyRepository } from '../../api-key.js';
 import type { CloudTenantMembership, CloudTenantResolver } from '../../tenant-resolver.js';
 import type { CloudMembershipStatus, CloudOrganizationRole } from '../../organization.js';
@@ -45,6 +48,56 @@ export function rejectUnsafeSqlIdentifier(identifier: string): string {
     throw new Error('Unsafe SQL identifier');
   }
   return identifier;
+}
+
+export class SqlCloudUsageMeter implements UsageMeter {
+  constructor(private readonly db: SqlQueryExecutor, private readonly tableName = 'usage_events') {
+    rejectUnsafeSqlIdentifier(tableName);
+  }
+
+  async recordUsage(event: CloudUsageEvent): Promise<void> {
+    const normalized = normalizeUsageEvent(event);
+    await this.db.query(
+      `INSERT INTO ${this.tableName} (dedupe_key, organization_id, type, subject_id, quantity, occurred_at, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (dedupe_key) DO NOTHING`,
+      [normalized.dedupeKey, normalized.tenant.organizationId, normalized.type, normalized.subjectId, normalized.quantity, normalized.occurredAt, normalized.metadata]
+    );
+  }
+
+  async listUsage(query: UsageQuery = {}): Promise<RequiredUsageEvent[]> {
+    const clauses: string[] = [];
+    const values: unknown[] = [];
+    let next = 1;
+    if (query.tenantId) { clauses.push(`organization_id = $${next++}`); values.push(query.tenantId); }
+    if (query.type) { clauses.push(`type = $${next++}`); values.push(query.type); }
+    const where = clauses.length ? ` WHERE ${clauses.join(' AND ')}` : '';
+    const result = await this.db.query<Record<string, unknown>>(`SELECT * FROM ${this.tableName}${where} ORDER BY occurred_at ASC`, values);
+    return result.rows.map((row) => ({
+      tenant: normalizeCloudTenantContext({ organizationId: String(row.organization_id) }),
+      type: String(row.type) as CloudUsageEvent['type'],
+      subjectId: row.subject_id ? String(row.subject_id) : undefined,
+      quantity: Number(row.quantity ?? 1),
+      occurredAt: new Date(String(row.occurred_at)),
+      metadata: row.metadata as Record<string, unknown> | undefined,
+      dedupeKey: String(row.dedupe_key ?? createUsageDedupeKey({ tenant: { organizationId: String(row.organization_id) }, type: String(row.type) as CloudUsageEvent['type'], subjectId: row.subject_id ? String(row.subject_id) : undefined, occurredAt: new Date(String(row.occurred_at)) })),
+    }));
+  }
+}
+
+export class SqlCloudAuditTrail implements CloudAuditTrail {
+  constructor(private readonly db: SqlQueryExecutor, private readonly tableName = 'audit_events') {
+    rejectUnsafeSqlIdentifier(tableName);
+  }
+
+  async record(event: CloudAuditTrailEvent): Promise<void> {
+    await this.db.query(
+      `INSERT INTO ${this.tableName} (organization_id, action, actor_type, actor_id, subject_id, occurred_at, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [event.tenant.organizationId, event.action, event.actor.type, event.actor.id, event.subjectId, event.occurredAt, event.metadata]
+    );
+  }
+
+  async list(_query: CloudAuditTrailQuery = {}): Promise<CloudAuditTrailEvent[]> {
+    throw new Error('SqlCloudAuditTrail.list is adapter-pending');
+  }
 }
 
 export class SqlCloudTenantResolver implements CloudTenantResolver {

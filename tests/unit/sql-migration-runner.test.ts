@@ -13,7 +13,8 @@ describe('SQL migration runner contract', () => {
 
     expect(db.queries.length).toBeGreaterThan(1);
     expect(db.queries[0].text).toContain('CREATE TABLE IF NOT EXISTS organizations');
-    expect(db.queries.at(-1)?.text).toContain('CREATE TABLE IF NOT EXISTS webhook_endpoints');
+    expect(db.queries.some((query) => query.text.includes('CREATE TABLE IF NOT EXISTS webhook_endpoints'))).toBe(true);
+    expect(db.queries.at(-1)?.text).toContain('CREATE TABLE IF NOT EXISTS audit_events');
     expect(db.queries.every((query) => query.values.length === 0)).toBe(true);
   });
 

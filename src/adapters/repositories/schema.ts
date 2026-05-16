@@ -8,6 +8,8 @@ export const CLOUD_LAYER_MINIMAL_SCHEMA_TABLES = [
   'paymentlinks',
   'address_pool',
   'webhook_endpoints',
+  'usage_events',
+  'audit_events',
 ] as const;
 
 const FORBIDDEN_SCHEMA_STATEMENTS = ['DROP', 'TRUNCATE', 'ALTER SYSTEM', 'CREATE DATABASE', 'DROP DATABASE'] as const;
@@ -95,6 +97,27 @@ CREATE TABLE IF NOT EXISTS webhook_endpoints (
   enabled BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS usage_events (
+  dedupe_key TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL REFERENCES organizations(id),
+  type TEXT NOT NULL,
+  subject_id TEXT,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  occurred_at TIMESTAMPTZ NOT NULL,
+  metadata JSONB
+);
+
+CREATE TABLE IF NOT EXISTS audit_events (
+  id BIGSERIAL PRIMARY KEY,
+  organization_id TEXT NOT NULL REFERENCES organizations(id),
+  action TEXT NOT NULL,
+  actor_type TEXT NOT NULL,
+  actor_id TEXT NOT NULL,
+  subject_id TEXT,
+  occurred_at TIMESTAMPTZ NOT NULL,
+  metadata JSONB
 );
 `;
 }
