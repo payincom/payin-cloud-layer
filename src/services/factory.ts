@@ -3,6 +3,7 @@ import type { EntitlementProvider } from '../entitlements.js';
 import type { CloudLayerPorts } from '../ports.js';
 import { StaticCloudWebhookSigner, type CloudWebhookSigner } from '../webhooks.js';
 import type { MutableCloudWebhookEndpointRepository } from '../adapters/repositories/webhook-adapter.js';
+import { CloudAddressPoolService } from './address-pool-service.js';
 import { CloudOrderService } from './order-service.js';
 import { CloudPaymentLinkService } from './payment-link-service.js';
 import { CloudWebhookService } from './webhook-service.js';
@@ -16,6 +17,7 @@ export interface CloudServiceLayerOptions {
 
 export interface CloudServiceLayer {
   authenticator: CloudApiKeyAuthenticator;
+  addressPool: CloudAddressPoolService;
   orders: CloudOrderService;
   paymentLinks: CloudPaymentLinkService;
   webhooks: CloudWebhookService;
@@ -27,6 +29,13 @@ export function createCloudServiceLayer(options: CloudServiceLayerOptions): Clou
 
   return {
     authenticator,
+    addressPool: new CloudAddressPoolService({
+      authenticator,
+      entitlementProvider: options.entitlementProvider,
+      addressPool: options.ports.addressPool,
+      usageMeter: options.ports.usageMeter,
+      auditTrail: options.ports.auditTrail,
+    }),
     orders: new CloudOrderService({
       authenticator,
       entitlementProvider: options.entitlementProvider,
