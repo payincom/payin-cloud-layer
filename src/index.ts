@@ -1,4 +1,23 @@
 export {
+  AddressPoolLimitExceededError,
+  AddressPoolStateError,
+  AddressPoolValidationError,
+  bindCloudDepositAddress,
+  createAddressPoolSummary,
+  importCloudAddressPoolDraft,
+  normalizeCloudAddressPoolEntry,
+  releaseCloudDepositAddress,
+} from './address-pool.js';
+export type {
+  AddressPoolProtocolSummary,
+  AddressPoolSummary,
+  CloudAddressPoolEntry,
+  CloudAddressPoolState,
+  CloudAddressProtocol,
+  NormalizedCloudAddressPoolEntry,
+} from './address-pool.js';
+
+export {
   CloudApiKeyAuthenticationError,
   CloudApiKeyAuthenticator,
   CloudApiKeyAuthorizationError,
