@@ -15,6 +15,26 @@ export type {
   CloudApiKeyStatus,
 } from './api-key.js';
 
+export {
+  CloudPaymentLinkInventoryError,
+  CloudPaymentLinkStateError,
+  CloudPaymentLinkValidationError,
+  createPaymentLinkOrderDraft,
+  createPublicPaymentLinkView,
+  normalizeCloudPaymentLink,
+  publishCloudPaymentLink,
+  reservePaymentLinkInventory,
+} from './payment-links.js';
+export type {
+  CloudPaymentLink,
+  CloudPaymentLinkOrderStatus,
+  CloudPaymentLinkStatus,
+  NormalizedCloudPaymentLink,
+  PaymentLinkOrderDraft,
+  PublicPaymentLinkView,
+  PublishedCloudPaymentLink,
+} from './payment-links.js';
+
 export { CloudProcessor } from './cloud-processor.js';
 export type { CloudProcessorOptions, CloudProtocol } from './cloud-processor.js';
 
