@@ -27,4 +27,8 @@ Do not point integration tests at production, sandbox customer data, or the old 
 
 ## Current status
 
-The repository currently has SQL adapter contracts against `SqlQueryRecorder`. Disposable DB tests are intentionally not yet wired. The next phase is to add schema fixtures and run the existing SQL adapters against an empty disposable Postgres database.
+The repository has SQL adapter contracts against `SqlQueryRecorder` and a gated disposable DB integration test at `tests/integration/disposable-db.test.ts`.
+
+Default `npm run verify` does not require a database. It runs the integration file in disabled mode and documents the opt-in gate.
+
+Manual GitHub workflow `Disposable Integration` starts a PostgreSQL 16 service, sets `PAYIN_CLOUD_LAYER_INTEGRATION=1`, applies the minimal schema, and exercises tenant resolver plus order/payment-link/address-pool/webhook SQL adapters.

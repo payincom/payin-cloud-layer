@@ -24,11 +24,11 @@ Status legend:
 | Processor runtime adapter | shared processor compatibility | `src/cloud-processor.ts` | `tests/unit/cloud-processor.test.ts` | contracted / adapter-pending |
 | Hosted runtime readiness/smoke | Cloud ops/readiness | planned | planned | planned |
 | Concrete DB/API adapters | old Cloud DB/routes | `src/adapters/repositories/*` | `tests/unit/repository-backed-adapter-design.test.ts`, `tests/unit/sql-adapter-contract.test.ts`, `tests/unit/sql-auth-adapter-contract.test.ts` | partially contracted / implementation-pending |
-| Disposable integration tests | old Cloud E2E behavior | planned | planned | planned |
+| Disposable integration tests | old Cloud E2E behavior | `tests/integration/disposable-db.test.ts`, `.github/workflows/disposable-integration.yml` | manual GitHub workflow with PostgreSQL service | partially verified / expand coverage |
 
 ## Current verification gate
 
-`npm run verify` must pass before every push. Latest verified suite after SQL auth adapter contracts: 21 test files / 101 tests.
+`npm run verify` must pass before every push. Latest default verification after disposable DB scaffold: 28 test files / 116 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution.
 
 ## Reference inventory snapshot
 
