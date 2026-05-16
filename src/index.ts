@@ -1,3 +1,5 @@
+export { createCloudApiKeyRouteHandlers } from './routes/api-key-routes.js';
+export type { CloudApiKeyCreateRouteBody, CloudApiKeyRouteHandlersOptions } from './routes/api-key-routes.js';
 export { createCloudRouteHandlers } from './routes/factory.js';
 export type { CloudRouteHandlersOptions } from './routes/factory.js';
 export { createCloudAddressPoolRouteHandlers } from './routes/address-pool-routes.js';
