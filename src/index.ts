@@ -1,4 +1,10 @@
 export {
+  IntegrationSafetyError,
+  assertDisposableIntegrationDatabaseUrl,
+  shouldRunDisposableIntegration,
+} from './integration-safety.js';
+
+export {
   CloudLayerApplication,
   CloudLayerPortError,
   createCloudLayerPorts,
