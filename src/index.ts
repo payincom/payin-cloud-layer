@@ -50,6 +50,12 @@ export { InMemoryCloudWebhookRepository } from './adapters/repositories/webhook-
 export type { MutableCloudWebhookEndpointRepository } from './adapters/repositories/webhook-adapter.js';
 
 export {
+  CLOUD_LAYER_MINIMAL_SCHEMA_TABLES,
+  assertSafeSchemaSql,
+  getCloudLayerMinimalSchemaSql,
+} from './adapters/repositories/schema.js';
+
+export {
   SqlCloudAddressPoolRepository,
   SqlCloudApiKeyRepository,
   SqlCloudOrderRepository,
