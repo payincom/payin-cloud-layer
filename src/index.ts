@@ -6,6 +6,12 @@ export type {
   CloudPaymentLinkPublishServiceRequest,
   CloudPaymentLinkServiceOptions,
 } from './services/payment-link-service.js';
+export { CloudWebhookService } from './services/webhook-service.js';
+export type {
+  CloudWebhookEndpointUpsertServiceRequest,
+  CloudWebhookServiceOptions,
+  CloudWebhookTestDeliveryServiceRequest,
+} from './services/webhook-service.js';
 
 export {
   IntegrationSafetyError,
