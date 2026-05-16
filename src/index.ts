@@ -1,3 +1,5 @@
+export { createCloudRouteHandlers } from './routes/factory.js';
+export type { CloudRouteHandlersOptions } from './routes/factory.js';
 export { createCloudAddressPoolRouteHandlers } from './routes/address-pool-routes.js';
 export type { CloudAddressPoolImportRouteBody, CloudAddressPoolRouteHandlersOptions } from './routes/address-pool-routes.js';
 export { createCloudOrderRouteHandlers } from './routes/order-routes.js';
