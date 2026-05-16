@@ -1,0 +1,55 @@
+import type { CloudWebhookService } from '../services/webhook-service.js';
+import { extractBearerApiKey, toCloudRouteErrorResponse, type CloudRouteResponse } from './http.js';
+import type { CloudRouteWithParams } from './payment-link-routes.js';
+
+export interface CloudWebhookRouteHandlersOptions {
+  webhooks: Pick<CloudWebhookService, 'upsertEndpoint' | 'createTestDelivery'>;
+}
+
+export interface CloudWebhookEndpointUpsertRouteBody {
+  url: string;
+  eventTypes: string[];
+  signingSecretRef: string;
+  enabled: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+export interface CloudWebhookTestDeliveryRouteBody {
+  eventId?: string;
+}
+
+export function createCloudWebhookRouteHandlers(options: CloudWebhookRouteHandlersOptions) {
+  return {
+    async upsertEndpoint(request: CloudRouteWithParams<CloudWebhookEndpointUpsertRouteBody, { endpointId: string }>): Promise<CloudRouteResponse> {
+      try {
+        const apiKey = extractBearerApiKey(request.headers);
+        const endpoint = await options.webhooks.upsertEndpoint({
+          apiKey,
+          id: request.params.endpointId,
+          url: request.body.url,
+          eventTypes: request.body.eventTypes,
+          signingSecretRef: request.body.signingSecretRef,
+          enabled: request.body.enabled,
+          metadata: request.body.metadata,
+        });
+        return { status: 200, body: { data: endpoint } };
+      } catch (error) {
+        return toCloudRouteErrorResponse(error);
+      }
+    },
+
+    async createTestDelivery(request: CloudRouteWithParams<CloudWebhookTestDeliveryRouteBody, { endpointId: string }>): Promise<CloudRouteResponse> {
+      try {
+        const apiKey = extractBearerApiKey(request.headers);
+        const delivery = await options.webhooks.createTestDelivery({
+          apiKey,
+          endpointId: request.params.endpointId,
+          eventId: request.body.eventId,
+        });
+        return { status: 200, body: { data: delivery } };
+      } catch (error) {
+        return toCloudRouteErrorResponse(error);
+      }
+    },
+  };
+}

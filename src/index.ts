@@ -9,6 +9,12 @@ export type {
   CloudPaymentLinkRouteHandlersOptions,
   CloudRouteWithParams,
 } from './routes/payment-link-routes.js';
+export { createCloudWebhookRouteHandlers } from './routes/webhook-routes.js';
+export type {
+  CloudWebhookEndpointUpsertRouteBody,
+  CloudWebhookRouteHandlersOptions,
+  CloudWebhookTestDeliveryRouteBody,
+} from './routes/webhook-routes.js';
 export {
   CloudRouteInputError,
   extractBearerApiKey,
