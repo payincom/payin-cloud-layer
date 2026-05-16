@@ -55,6 +55,15 @@ await services.orders.createOrder({
 
 Routes should stay thin: parse request input, call a Cloud service, then serialize the response. Tenant/auth/entitlement/usage/audit behavior belongs in this package rather than duplicated in route handlers.
 
+For framework adapters, use the route harness factory:
+
+```ts
+import { createCloudRouteHandlers } from '@payin/cloud-layer';
+
+const routes = createCloudRouteHandlers({ services });
+// Hono/Express/Fastify handlers can adapt HTTP objects into routes.orders.createOrder(...)
+```
+
 ## Boundary rule
 
 Cloud code belongs here. Do not put Cloud-only processors/managers/routes into `payin-open`. When old Cloud repo business code is needed, extract it behind interfaces in this repository instead of bulk-copying route/database coupling.

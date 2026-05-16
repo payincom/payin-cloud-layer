@@ -56,8 +56,22 @@ Current service coverage:
 - `CloudOrderService.createOrder`
 - `CloudPaymentLinkService.createPaymentLink`
 - `CloudPaymentLinkService.publishPaymentLink`
+- `CloudAddressPoolService.importAddresses`
+- `CloudAddressPoolService.getSummary`
 - `CloudWebhookService.upsertEndpoint`
 - `CloudWebhookService.createTestDelivery`
+
+## Route harness layer
+
+Route harnesses are framework-neutral handlers that convert normalized HTTP-like requests into service calls:
+
+- `createCloudOrderRouteHandlers`
+- `createCloudPaymentLinkRouteHandlers`
+- `createCloudAddressPoolRouteHandlers`
+- `createCloudWebhookRouteHandlers`
+- `createCloudRouteHandlers`
+
+They intentionally do not resolve tenants or reimplement authorization. They only extract the bearer API key, map request body/params, call the service layer, and normalize route errors. Hono/Express/Fastify adapters should be thin wrappers around these handlers.
 
 ## Migration from current PayIn Cloud repo
 
