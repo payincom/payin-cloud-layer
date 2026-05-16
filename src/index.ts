@@ -57,6 +57,23 @@ export type {
 } from './hooks.js';
 
 export {
+  InMemoryUsageMeter,
+  UsageDuplicateError,
+  createUsageDedupeKey,
+  normalizeUsageEvent,
+  summarizeUsage,
+  toBillingPeriod,
+} from './usage-meter.js';
+export type {
+  RequiredUsageEvent,
+  UsageDuplicatePolicy,
+  UsageMeter,
+  UsageMeterOptions,
+  UsageQuery,
+  UsageSummary,
+} from './usage-meter.js';
+
+export {
   CloudTenantAccessError,
   InMemoryCloudTenantResolver,
   resolveActiveCloudTenant,

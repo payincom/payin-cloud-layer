@@ -12,6 +12,7 @@ export interface CloudUsageEvent {
     | 'webhook.tested';
   subjectId?: string;
   quantity?: number;
+  occurredAt?: Date;
   metadata?: Record<string, unknown>;
 }
 
