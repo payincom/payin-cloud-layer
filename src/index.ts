@@ -1,5 +1,11 @@
 export { createCloudServiceLayer } from './services/factory.js';
 export type { CloudServiceLayer, CloudServiceLayerOptions } from './services/factory.js';
+export { CloudAddressPoolService } from './services/address-pool-service.js';
+export type {
+  CloudAddressPoolImportServiceRequest,
+  CloudAddressPoolServiceOptions,
+  CloudAddressPoolSummaryServiceRequest,
+} from './services/address-pool-service.js';
 export { CloudOrderService } from './services/order-service.js';
 export type { CloudOrderCreateServiceRequest, CloudOrderServiceOptions } from './services/order-service.js';
 export { CloudPaymentLinkService } from './services/payment-link-service.js';
