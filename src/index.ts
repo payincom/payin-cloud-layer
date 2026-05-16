@@ -1,5 +1,12 @@
 export { createCloudOrderRouteHandlers } from './routes/order-routes.js';
 export type { CloudOrderCreateRouteBody, CloudOrderRouteHandlersOptions } from './routes/order-routes.js';
+export { createCloudPaymentLinkRouteHandlers } from './routes/payment-link-routes.js';
+export type {
+  CloudPaymentLinkCreateRouteBody,
+  CloudPaymentLinkPublishRouteBody,
+  CloudPaymentLinkRouteHandlersOptions,
+  CloudRouteWithParams,
+} from './routes/payment-link-routes.js';
 export {
   CloudRouteInputError,
   extractBearerApiKey,
