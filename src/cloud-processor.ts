@@ -1,15 +1,12 @@
-import {
-  Processor,
-  tenantPaymentScope,
-  type PaymentScope,
-  type ProcessorConfig,
-} from '@payin/processor';
 import { normalizeCloudTenantContext } from './context.js';
-import type { ConfigProvider } from '@payin/shared';
-import type { CreateOrderRequest, CreateOrderResponse } from '@payin/processor';
-import type { BindAddressRequest, BindAddressResponse, UnbindAddressRequest } from '@payin/processor';
 
-export type CloudProtocol = 'evm' | 'tron' | 'solana';
+export type CloudProtocol = 'evm' | 'tron' | 'solana' | string;
+
+export interface CloudPaymentScope {
+  id: string;
+  kind: 'tenant';
+  label?: string;
+}
 
 export interface CloudProcessorOptions {
   /** Explicit tenant/organization scope for this Cloud adapter instance. */
@@ -20,17 +17,36 @@ export interface CloudProcessorOptions {
   organizationLabel?: string;
 }
 
+export interface CloudProcessorBackend {
+  start(): Promise<void>;
+  stop(): Promise<void>;
+  getEventBus(): unknown;
+  createOrder(request: Record<string, unknown> & { organizationId: string }): Promise<any>;
+  getOrder(orderId: string, organizationId: string): Promise<any | null>;
+  bindDepositAddress(request: Record<string, unknown> & { organizationId: string }): Promise<any>;
+  unbindDepositAddress(request: Record<string, unknown> & { organizationId: string }): Promise<void>;
+  getUserDepositAddress(organizationId: string, depositReference: string, protocol: CloudProtocol): Promise<any>;
+  listAddresses(params: Record<string, unknown> & { organizationId: string }): Promise<any>;
+  getAddressPoolAvailability(organizationId: string, protocol: CloudProtocol): Promise<any>;
+  addAddressesToPool(addresses: Array<Record<string, unknown> & { organizationId: string }>): Promise<void>;
+  getTransfers(reference: { orderId?: string; depositReference?: string }, organizationId: string): Promise<any>;
+  getTransferByTxHash(txHash: string, organizationId: string): Promise<any>;
+  listOrders(filters: Record<string, unknown> & { organizationId: string }): Promise<any>;
+  listTransfers(filters: Record<string, unknown> & { organizationId: string }): Promise<any>;
+}
+
 /**
- * PayIn Cloud adapter over PayIn Open's shared processor compatibility layer.
+ * PayIn Cloud adapter over PayIn shared processor compatibility APIs.
  *
- * This belongs in the Cloud overlay layer, not in payin-open. Cloud keeps
- * explicit tenant context at its boundary; Open uses OpenProcessor instead.
+ * This package stays standalone: it accepts a backend implementing the public
+ * processor shape rather than importing PayIn Open internals. Production Cloud
+ * wires this backend to the shared processor package; tests can provide fakes.
  */
 export class CloudProcessor {
-  readonly paymentScope: PaymentScope;
+  readonly paymentScope: CloudPaymentScope;
 
   constructor(
-    private readonly processor: Processor,
+    private readonly processor: CloudProcessorBackend,
     options: CloudProcessorOptions
   ) {
     const tenant = normalizeCloudTenantContext({
@@ -38,27 +54,18 @@ export class CloudProcessor {
       tenantId: options.tenantId,
       label: options.organizationLabel,
     });
-    this.paymentScope = tenantPaymentScope(tenant.organizationId, tenant.label);
-  }
-
-  static async create(
-    config: ProcessorConfig = {},
-    configFile?: string,
-    configProvider?: ConfigProvider,
-    options?: CloudProcessorOptions
-  ): Promise<CloudProcessor> {
-    if (!options?.organizationId) {
-      throw new Error('CloudProcessor requires an explicit organizationId');
-    }
-    const processor = await Processor.create(config, configFile, configProvider);
-    return new CloudProcessor(processor, options);
+    this.paymentScope = {
+      id: tenant.organizationId,
+      kind: 'tenant',
+      ...(tenant.label ? { label: tenant.label } : {}),
+    };
   }
 
   get organizationId(): string {
     return this.paymentScope.id;
   }
 
-  get rawProcessor(): Processor {
+  get rawProcessor(): CloudProcessorBackend {
     return this.processor;
   }
 
@@ -70,11 +77,11 @@ export class CloudProcessor {
     return this.processor.stop();
   }
 
-  getEventBus(): ReturnType<Processor['getEventBus']> {
+  getEventBus(): unknown {
     return this.processor.getEventBus();
   }
 
-  createOrder(request: Omit<CreateOrderRequest, 'organizationId'>): Promise<CreateOrderResponse> {
+  createOrder(request: Record<string, unknown>): Promise<any> {
     return this.processor.createOrder({
       ...request,
       organizationId: this.organizationId,
@@ -85,14 +92,14 @@ export class CloudProcessor {
     return this.processor.getOrder(orderId, this.organizationId);
   }
 
-  bindDepositAddress(request: Omit<BindAddressRequest, 'organizationId'>): Promise<BindAddressResponse> {
+  bindDepositAddress(request: Record<string, unknown>): Promise<any> {
     return this.processor.bindDepositAddress({
       ...request,
       organizationId: this.organizationId,
     });
   }
 
-  unbindDepositAddress(request: Omit<UnbindAddressRequest, 'organizationId'>): Promise<void> {
+  unbindDepositAddress(request: Record<string, unknown>): Promise<void> {
     return this.processor.unbindDepositAddress({
       ...request,
       organizationId: this.organizationId,
@@ -131,11 +138,11 @@ export class CloudProcessor {
     return this.processor.getTransferByTxHash(txHash, this.organizationId);
   }
 
-  listOrders(filters: Parameters<Processor['listOrders']>[0] = {}) {
+  listOrders(filters: Record<string, unknown> = {}) {
     return this.processor.listOrders({ ...filters, organizationId: this.organizationId });
   }
 
-  listTransfers(filters: Parameters<Processor['listTransfers']>[0] = {}) {
+  listTransfers(filters: Record<string, unknown> = {}) {
     return this.processor.listTransfers({ ...filters, organizationId: this.organizationId });
   }
 }
