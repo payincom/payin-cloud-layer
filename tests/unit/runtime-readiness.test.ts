@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createCloudRuntimeSmokeProbe,
   createRuntimeReadinessReport,
   redactRuntimeDiagnostic,
+  runCloudRuntimeSmoke,
   summarizeRuntimeReadiness,
   type RuntimeReadinessCheck,
 } from '../../src/index.js';
@@ -77,6 +79,30 @@ describe('Cloud hosted runtime readiness contract', () => {
       status: 'pass',
       totals: { pass: 1, warn: 0, fail: 0 },
       checks: [{ name: 'chains.ethereum-sepolia', status: 'pass', details: { latestBlock: 123 } }],
+    });
+  });
+
+  it('runs hosted runtime smoke probes into a readiness report', async () => {
+    const report = await runCloudRuntimeSmoke({
+      tenant,
+      checkedAt: new Date('2026-05-17T06:02:00.000Z'),
+      probes: [
+        createCloudRuntimeSmokeProbe('auth.api-key', () => ({ name: 'auth.api-key', status: 'pass', details: { apiKey: 'pk_live_secret' } })),
+        createCloudRuntimeSmokeProbe('orders.create', () => undefined),
+        createCloudRuntimeSmokeProbe('webhooks.test', () => { throw new Error('webhook endpoint missing'); }),
+      ],
+    });
+
+    expect(report).toEqual({
+      tenant,
+      checkedAt: new Date('2026-05-17T06:02:00.000Z'),
+      status: 'fail',
+      totals: { pass: 2, warn: 0, fail: 1 },
+      checks: [
+        { name: 'auth.api-key', status: 'pass', details: { apiKey: '[REDACTED]' } },
+        { name: 'orders.create', status: 'pass' },
+        { name: 'webhooks.test', status: 'fail', message: 'webhook endpoint missing' },
+      ],
     });
   });
 });

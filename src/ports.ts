@@ -22,6 +22,7 @@ export interface CloudPaymentLinkPort {
 
 export interface CloudAddressPoolPort {
   import(request: unknown): Promise<unknown> | unknown;
+  list?(tenant: CloudTenantContext, filters?: Record<string, unknown>): Promise<unknown> | unknown;
   summary(tenant: CloudTenantContext): Promise<unknown> | unknown;
 }
 

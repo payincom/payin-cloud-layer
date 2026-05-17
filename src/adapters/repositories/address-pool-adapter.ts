@@ -59,6 +59,13 @@ export class RepositoryBackedAddressPoolPort implements CloudAddressPoolPort {
     return createAddressPoolSummary(await this.repository.listByTenant(tenant), tenant);
   }
 
+  async list(tenant: CloudTenantContext, filters: Record<string, unknown> = {}): Promise<NormalizedCloudAddressPoolEntry[]> {
+    return (await this.repository.listByTenant(tenant)).filter((entry) =>
+      (!filters.protocol || entry.protocol === filters.protocol)
+      && (!filters.state || entry.state === filters.state)
+    );
+  }
+
   async bindFirstIdle(tenant: CloudTenantContext, depositReference: string, orderId: string): Promise<NormalizedCloudAddressPoolEntry> {
     const entry = (await this.repository.listByTenant(tenant)).find((candidate) => candidate.state === 'idle');
     if (!entry) throw new Error('No idle address is available');

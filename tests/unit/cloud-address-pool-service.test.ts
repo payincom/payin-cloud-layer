@@ -78,6 +78,22 @@ describe('CloudAddressPoolService', () => {
     });
   });
 
+  it('lists tenant-scoped addresses through read entitlement', async () => {
+    const setup = service();
+    await setup.service.importAddresses({ apiKey: 'pk_live_addresses', protocol: 'evm', addresses: [{ address: '0x2222222222222222222222222222222222222222' }] });
+
+    await expect(setup.service.listAddresses({ apiKey: 'pk_live_addresses', protocol: 'evm', state: 'idle' })).resolves.toMatchObject([
+      { tenant, protocol: 'evm', address: '0x2222222222222222222222222222222222222222', state: 'idle' },
+    ]);
+  });
+
+  it('rejects missing read entitlement before listing addresses', async () => {
+    const setup = service({ entitlementProvider: new StaticEntitlementProvider(['address-pool:import']) });
+    await setup.service.importAddresses({ apiKey: 'pk_live_addresses', protocol: 'evm', addresses: [{ address: '0x2222222222222222222222222222222222222222' }] });
+
+    await expect(setup.service.listAddresses({ apiKey: 'pk_live_addresses' })).rejects.toThrow('Tenant is not entitled to capability: address-pool:read');
+  });
+
   it('rejects missing import entitlement before adapter side effects', async () => {
     const setup = service({ entitlementProvider: new StaticEntitlementProvider(['address-pool:read']) });
 

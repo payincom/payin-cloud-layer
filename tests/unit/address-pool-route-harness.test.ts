@@ -11,7 +11,8 @@ describe('Cloud address pool route harness', () => {
           return [{ tenant: { organizationId: 'org-route', tenantId: 'org-route' }, protocol: 'evm', address: '0xabc', state: 'idle' }];
         },
         async getSummary() { throw new Error('unused'); },
-      } as Pick<CloudAddressPoolService, 'importAddresses' | 'getSummary'>,
+        async listAddresses() { throw new Error('unused'); },
+      } as unknown as Pick<CloudAddressPoolService, 'importAddresses' | 'getSummary' | 'listAddresses'>,
     });
 
     await expect(handlers.importAddresses({
@@ -31,7 +32,8 @@ describe('Cloud address pool route harness', () => {
           calls.push(input);
           return { tenant: { organizationId: 'org-route', tenantId: 'org-route' }, totalAddresses: 1, hasAddresses: true, protocols: [] };
         },
-      } as Pick<CloudAddressPoolService, 'importAddresses' | 'getSummary'>,
+        async listAddresses() { throw new Error('unused'); },
+      } as unknown as Pick<CloudAddressPoolService, 'importAddresses' | 'getSummary' | 'listAddresses'>,
     });
 
     await expect(handlers.getSummary({ headers: { authorization: 'Bearer pk_live_route' }, body: undefined })).resolves.toEqual({
@@ -39,5 +41,25 @@ describe('Cloud address pool route harness', () => {
       body: { data: { tenant: { organizationId: 'org-route', tenantId: 'org-route' }, totalAddresses: 1, hasAddresses: true, protocols: [] } },
     });
     expect(calls).toEqual([{ apiKey: 'pk_live_route' }]);
+  });
+
+  it('maps list address input to service filters', async () => {
+    const calls: unknown[] = [];
+    const handlers = createCloudAddressPoolRouteHandlers({
+      addressPool: {
+        async importAddresses() { throw new Error('unused'); },
+        async getSummary() { throw new Error('unused'); },
+        async listAddresses(input: unknown) {
+          calls.push(input);
+          return [{ tenant: { organizationId: 'org-route', tenantId: 'org-route' }, protocol: 'evm', address: '0xabc', state: 'idle' }];
+        },
+      } as unknown as Pick<CloudAddressPoolService, 'importAddresses' | 'getSummary' | 'listAddresses'>,
+    });
+
+    await expect(handlers.listAddresses({ headers: { authorization: 'Bearer pk_live_route' }, query: { protocol: 'evm', state: 'idle' }, body: undefined })).resolves.toEqual({
+      status: 200,
+      body: { data: [{ tenant: { organizationId: 'org-route', tenantId: 'org-route' }, protocol: 'evm', address: '0xabc', state: 'idle' }] },
+    });
+    expect(calls).toEqual([{ apiKey: 'pk_live_route', protocol: 'evm', state: 'idle' }]);
   });
 });

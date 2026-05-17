@@ -22,6 +22,17 @@ export interface RuntimeReadinessReport extends RuntimeReadinessSummary {
   checks: RuntimeReadinessCheck[];
 }
 
+export interface CloudRuntimeSmokeProbe {
+  name: string;
+  run(): Promise<RuntimeReadinessCheck | void> | RuntimeReadinessCheck | void;
+}
+
+export interface CloudRuntimeSmokeInput {
+  tenant: CloudTenantContext;
+  probes: CloudRuntimeSmokeProbe[];
+  checkedAt?: Date;
+}
+
 export function summarizeRuntimeReadiness(checks: RuntimeReadinessCheck[]): RuntimeReadinessSummary {
   const totals = { pass: 0, warn: 0, fail: 0 } satisfies Record<RuntimeReadinessStatus, number>;
   for (const check of checks) totals[check.status] += 1;
@@ -50,4 +61,25 @@ export function redactRuntimeDiagnostic(check: RuntimeReadinessCheck): RuntimeRe
     ...check,
     ...(check.details ? { details: redactCloudAuditMetadata(check.details) } : {}),
   };
+}
+
+export async function runCloudRuntimeSmoke(input: CloudRuntimeSmokeInput): Promise<RuntimeReadinessReport> {
+  const checks: RuntimeReadinessCheck[] = [];
+  for (const probe of input.probes) {
+    try {
+      const result = await probe.run();
+      checks.push(result ?? { name: probe.name, status: 'pass' });
+    } catch (error) {
+      checks.push({
+        name: probe.name,
+        status: 'fail',
+        message: error instanceof Error ? error.message : 'Cloud runtime smoke probe failed',
+      });
+    }
+  }
+  return createRuntimeReadinessReport({ tenant: input.tenant, checks, checkedAt: input.checkedAt });
+}
+
+export function createCloudRuntimeSmokeProbe(name: string, run: CloudRuntimeSmokeProbe['run']): CloudRuntimeSmokeProbe {
+  return { name, run };
 }

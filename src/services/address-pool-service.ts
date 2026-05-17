@@ -28,6 +28,12 @@ export interface CloudAddressPoolSummaryServiceRequest {
   apiKey: string;
 }
 
+export interface CloudAddressPoolListServiceRequest {
+  apiKey: string;
+  protocol?: string;
+  state?: string;
+}
+
 export class CloudAddressPoolService {
   constructor(private readonly options: CloudAddressPoolServiceOptions) {}
 
@@ -71,6 +77,12 @@ export class CloudAddressPoolService {
   async getSummary(request: CloudAddressPoolSummaryServiceRequest): Promise<AddressPoolSummary> {
     const scope = await this.authenticateAndAuthorize(request.apiKey, 'address-pool:read');
     return this.options.addressPool.summary(scope.tenant) as Promise<AddressPoolSummary>;
+  }
+
+  async listAddresses(request: CloudAddressPoolListServiceRequest): Promise<NormalizedCloudAddressPoolEntry[]> {
+    const scope = await this.authenticateAndAuthorize(request.apiKey, 'address-pool:read');
+    if (!this.options.addressPool.list) throw new Error('Address pool list adapter is not configured');
+    return this.options.addressPool.list(scope.tenant, { protocol: request.protocol, state: request.state }) as Promise<NormalizedCloudAddressPoolEntry[]>;
   }
 
   private async authenticateAndAuthorize(apiKey: string, capability: Extract<CloudCapability, 'address-pool:import' | 'address-pool:read'>): Promise<CloudApiKeyScope> {

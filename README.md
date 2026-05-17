@@ -35,6 +35,7 @@ npm run verify
 ## Architecture
 
 See [`docs/architecture.md`](docs/architecture.md).
+See [`docs/first-layer-acceptance.md`](docs/first-layer-acceptance.md) for the completed first-layer Cloud Overlay acceptance scope.
 
 ## Service layer example
 

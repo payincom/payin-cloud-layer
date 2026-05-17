@@ -29,7 +29,7 @@ export type {
   LegacyPagination,
 } from './routes/legacy-compat.js';
 export { createCloudAddressPoolRouteHandlers } from './routes/address-pool-routes.js';
-export type { CloudAddressPoolImportRouteBody, CloudAddressPoolRouteHandlersOptions } from './routes/address-pool-routes.js';
+export type { CloudAddressPoolImportRouteBody, CloudAddressPoolListRouteQuery, CloudAddressPoolRouteHandlersOptions } from './routes/address-pool-routes.js';
 export { createCloudOrganizationRouteHandlers } from './routes/organization-routes.js';
 export type {
   CloudOrganizationAddMemberRouteBody,
@@ -55,6 +55,8 @@ export type {
   CloudWebhookRouteHandlersOptions,
   CloudWebhookTestDeliveryRouteBody,
 } from './routes/webhook-routes.js';
+export { createCloudRuntimeReadinessRouteHandlers } from './routes/runtime-readiness-routes.js';
+export type { CloudRuntimeReadinessRouteHandlersOptions, CloudRuntimeReadinessService } from './routes/runtime-readiness-routes.js';
 export {
   CloudRouteInputError,
   extractBearerApiKey,
@@ -101,6 +103,7 @@ export type {
 export { CloudAddressPoolService } from './services/address-pool-service.js';
 export type {
   CloudAddressPoolImportServiceRequest,
+  CloudAddressPoolListServiceRequest,
   CloudAddressPoolServiceOptions,
   CloudAddressPoolSummaryServiceRequest,
 } from './services/address-pool-service.js';
@@ -195,11 +198,15 @@ export type {
 } from './ports.js';
 
 export {
+  createCloudRuntimeSmokeProbe,
   createRuntimeReadinessReport,
   redactRuntimeDiagnostic,
+  runCloudRuntimeSmoke,
   summarizeRuntimeReadiness,
 } from './runtime-readiness.js';
 export type {
+  CloudRuntimeSmokeInput,
+  CloudRuntimeSmokeProbe,
   RuntimeReadinessCheck,
   RuntimeReadinessReport,
   RuntimeReadinessStatus,
