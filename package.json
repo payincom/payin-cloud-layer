@@ -11,7 +11,7 @@
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "scripts": {
-    "build": "tsc --build",
+    "build": "npm run build -w packages/shared && tsc --build",
     "build:admin": "npm run build -w packages/shared && npm run build -w apps/admin",
     "type-check": "npm run build -w packages/shared && tsc --build --pretty false",
     "type-check:admin": "npm run build -w packages/shared && tsc -b apps/admin",
