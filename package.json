@@ -4,11 +4,17 @@
   "private": true,
   "type": "module",
   "description": "PayIn Cloud overlay layer over PayIn Open shared payment core",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "scripts": {
     "build": "tsc --build",
+    "build:admin": "npm run build -w packages/shared && npm run build -w apps/admin",
     "type-check": "tsc --build --pretty false",
+    "type-check:admin": "npm run build -w packages/shared && tsc -b apps/admin",
     "test": "vitest run",
     "verify": "npm run type-check && npm run build && npm test",
     "start": "node dist/src/server.js",
