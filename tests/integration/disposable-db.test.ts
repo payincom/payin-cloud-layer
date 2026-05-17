@@ -9,6 +9,7 @@ import {
   SqlCloudPaymentLinkRepository,
   SqlCloudTenantResolver,
   SqlCloudUsageMeter,
+  SqlHostedConfigRepository,
   SqlCloudWebhookRepository,
   createCloudAuditEvent,
   applyCloudLayerSchema,
@@ -64,6 +65,26 @@ describe.runIf(enabled)('disposable database integration', () => {
     await expect(organizations.updateMember({ organizationId: 'org-integration' }, 'user-added', { role: 'member', status: 'active' })).resolves.toMatchObject({
       userId: 'user-added',
       role: 'member',
+    });
+
+    const configs = new SqlHostedConfigRepository(executor);
+    await expect(configs.updateTenantConfig({ organizationId: 'org-integration' }, {
+      apiBaseUrl: 'https://api.integration.example',
+      enabledChains: ['ethereum-sepolia'],
+      enabledTokens: ['USDC'],
+      secretRefs: { webhookSigningSecretRef: 'secret://integration/hosted-config' },
+      limits: { apiKeyLimit: 10 },
+      metadata: { source: 'disposable-db' },
+    })).resolves.toMatchObject({
+      tenant: { organizationId: 'org-integration' },
+      apiBaseUrl: 'https://api.integration.example',
+      enabledChains: ['ethereum-sepolia'],
+      enabledTokens: ['USDC'],
+      limits: { apiKeyLimit: 10 },
+    });
+    await expect(configs.getTenantConfig({ organizationId: 'org-integration' })).resolves.toMatchObject({
+      secretRefs: { webhookSigningSecretRef: 'secret://integration/hosted-config' },
+      metadata: { source: 'disposable-db' },
     });
 
     const apiKeys = new SqlCloudApiKeyRepository(executor);
