@@ -23,12 +23,12 @@ Status legend:
 | Webhooks/notifications | `packages/notification/tests/webhook-notifier.test.ts` | `src/webhooks.ts`, `src/notification-delivery.ts`, `src/webhook-delivery-worker.ts`, `src/cloud-manager.ts`, `src/services/webhook-service.ts`, `SqlCloudNotificationDeliveryRepository` | webhook + delivery worker + persistence + SQL + disposable integration tests | contracted / service-covered / worker-covered / delivery-persistence-covered / SQL-verified |
 | Processor runtime adapter | shared processor compatibility | `src/cloud-processor.ts` | `tests/unit/cloud-processor.test.ts` | contracted / adapter-pending |
 | Hosted runtime readiness/smoke | Cloud ops/readiness | planned | planned | planned |
-| Concrete DB/API adapters | old Cloud DB/routes | `src/adapters/repositories/*`, `src/routes/*` | repository + SQL + route harness tests | partially contracted / implementation-pending |
+| Concrete DB/API adapters | old Cloud DB/routes | `src/adapters/repositories/*`, `src/routes/*`, `toLegacyCloudRouteResponse` | repository + SQL + route harness + legacy route envelope adapter tests | partially contracted / route-envelope-covered / implementation-pending |
 | Disposable integration tests | old Cloud E2E behavior | `tests/integration/disposable-db.test.ts`, `.github/workflows/disposable-integration.yml` | manual GitHub workflow with PostgreSQL service | partially verified / expand coverage |
 
 ## Current verification gate
 
-`npm run verify` must pass before every push. Latest default verification after service-layer billing limit wiring: 56 test files / 201 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution for tenant/organization/member/API-key/subscription/hosted-config/order/payment-link/address-pool/webhook/notification-delivery/usage/audit adapters and SQL-backed subscription billing-limit decisions.
+`npm run verify` must pass before every push. Latest default verification after service-layer billing limit wiring: 56 test files / 201 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution for tenant/organization/member/API-key/subscription/hosted-config/order/payment-link/address-pool/webhook/notification-delivery/usage/audit adapters and SQL-backed subscription billing-limit decisions. Route-level legacy envelope coverage now adapts new route harness `{data}` responses back to old Cloud envelopes such as `{apiKey, metadata}`, `{config}`, and `{endpoint}` without changing error bodies.
 
 ## Reference inventory snapshot
 
@@ -47,6 +47,6 @@ Cloud API route extraction:
 
 - compare old route request/response shapes against the framework-neutral route harnesses
 - add framework adapter examples for Hono/Express/Fastify if needed
-- add route-level compatibility adapter tests for old Cloud envelopes where needed
 - expand concrete framework adapter examples for Cloud route harnesses if needed
 - continue old Cloud route extraction for auth/public checkout/config diagnostics surfaces
+- add list/get/update/delete route harnesses where service coverage already exists but route coverage is still thin

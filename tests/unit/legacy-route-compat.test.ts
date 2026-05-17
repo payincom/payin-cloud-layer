@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   CLOUD_LEGACY_ROUTE_COMPATIBILITY,
+  createCloudApiKeyRouteHandlers,
+  createCloudHostedConfigRouteHandlers,
+  createCloudOrderRouteHandlers,
+  createCloudWebhookRouteHandlers,
   normalizeHostedRuntimeConfig,
   toLegacyApiKeyCreateResponse,
   toLegacyApiKeyListResponse,
+  toLegacyCloudRouteResponse,
   toLegacyConfigResponse,
   toLegacyMemberResponse,
   toLegacyOrderListResponse,
@@ -93,5 +98,45 @@ describe('legacy Cloud route compatibility contracts', () => {
     expect(toLegacyConfigResponse(config)).toEqual({ config });
     expect(toLegacyWebhookEndpointResponse(endpoint)).toEqual({ endpoint });
     expect(toLegacyWebhookEndpointListResponse([endpoint])).toEqual({ endpoints: [endpoint] });
+  });
+
+  it('adapts new route harness responses to old Cloud envelopes', async () => {
+    const order = { id: 'order-route-legacy', tenant: { organizationId: 'org-legacy', tenantId: 'org-legacy' }, orderReference: 'ref-route', amount: '10', currency: 'USDC', chainId: 'ethereum', status: 'pending' as const, confirmedReceived: '0' };
+    const apiKey = { id: 'key-route-legacy', keyPrefix: 'pk_live_', name: 'Route key', organizationId: 'org-legacy' };
+    const config = normalizeHostedRuntimeConfig({ tenant: { organizationId: 'org-legacy', tenantId: 'org-legacy' }, enabledChains: ['ethereum'], enabledTokens: ['USDC'] });
+    const endpoint = { id: 'wh-route-legacy', tenant: { organizationId: 'org-legacy', tenantId: 'org-legacy' }, url: 'https://merchant.example/webhook', eventTypes: ['order.completed'], signingSecretRef: 'secret://legacy', enabled: true };
+    const headers = { authorization: 'Bearer pk_live_legacy' };
+
+    const orderRoutes = createCloudOrderRouteHandlers({ orders: { createOrder: async () => order } as never });
+    const apiKeyRoutes = createCloudApiKeyRouteHandlers({ apiKeys: { createApiKey: async () => ({ presentedKey: 'pk_live_secret', apiKey }), listApiKeys: async () => [apiKey], revokeApiKey: async () => apiKey } as never });
+    const configRoutes = createCloudHostedConfigRouteHandlers({ configs: { getConfig: async () => config, updateConfig: async () => config } as never });
+    const webhookRoutes = createCloudWebhookRouteHandlers({ webhooks: { upsertEndpoint: async () => endpoint, createTestDelivery: async () => ({ endpointId: endpoint.id }) } as never });
+
+    await expect(orderRoutes.createOrder({ headers, body: { orderReference: 'ref-route', amount: '10', currency: 'USDC', chainId: 'ethereum' } }).then((response) => toLegacyCloudRouteResponse(response, 'data'))).resolves.toEqual({
+      status: 201,
+      body: { data: order },
+    });
+    await expect(apiKeyRoutes.createApiKey({ headers, body: { name: 'Route key' } }).then((response) => toLegacyCloudRouteResponse(response, 'apiKey+metadata'))).resolves.toEqual({
+      status: 201,
+      body: { apiKey: 'pk_live_secret', metadata: apiKey },
+    });
+    await expect(apiKeyRoutes.listApiKeys({ headers, body: undefined }).then((response) => toLegacyCloudRouteResponse(response, 'apiKeys'))).resolves.toEqual({
+      status: 200,
+      body: { apiKeys: [apiKey] },
+    });
+    await expect(configRoutes.getConfig({ headers, body: undefined }).then((response) => toLegacyCloudRouteResponse(response, 'config'))).resolves.toEqual({
+      status: 200,
+      body: { config },
+    });
+    await expect(webhookRoutes.upsertEndpoint({ headers, params: { endpointId: endpoint.id }, body: { url: endpoint.url, eventTypes: endpoint.eventTypes, signingSecretRef: endpoint.signingSecretRef, enabled: endpoint.enabled } }).then((response) => toLegacyCloudRouteResponse(response, 'webhookEndpoint'))).resolves.toEqual({
+      status: 200,
+      body: { endpoint },
+    });
+  });
+
+  it('leaves route errors unchanged when applying legacy envelopes', () => {
+    const errorResponse = { status: 401, body: { error: { code: 'CLOUD_ROUTE_UNAUTHORIZED', message: 'Bearer API key is required' } } };
+
+    expect(toLegacyCloudRouteResponse(errorResponse, 'apiKeys')).toBe(errorResponse);
   });
 });

@@ -4,6 +4,7 @@ import type { CloudOrganization, CloudOrganizationMember, CloudOrganizationRole 
 import type { CloudPaymentLink } from '../payment-links.js';
 import type { HostedRuntimeConfig } from '../hosted-config.js';
 import type { CloudWebhookEndpoint } from '../webhooks.js';
+import type { CloudRouteErrorBody, CloudRouteResponse } from './http.js';
 
 export type LegacyCloudHttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export type LegacyCloudResponseEnvelope = 'data' | 'data+pagination' | 'organization' | 'organizations' | 'organization+role' | 'apiKey+metadata' | 'apiKeys' | 'member' | 'members' | 'config' | 'webhookEndpoint' | 'webhookEndpoints' | 'empty';
@@ -109,4 +110,62 @@ export function toLegacyWebhookEndpointListResponse(endpoints: CloudWebhookEndpo
 
 export function toLegacyEmptyResponse(): Record<string, never> {
   return {};
+}
+
+const DEFAULT_LEGACY_PAGINATION: LegacyPagination = { page: 1, limit: 20, total: 0, totalPages: 0 };
+
+export interface LegacyCloudRouteResponseOptions {
+  pagination?: LegacyPagination;
+}
+
+export function toLegacyCloudRouteResponse(response: CloudRouteResponse, envelope: LegacyCloudResponseEnvelope, options: LegacyCloudRouteResponseOptions = {}): CloudRouteResponse {
+  if ('error' in (response.body as CloudRouteErrorBody | Record<string, unknown>)) return response;
+
+  const data = extractRouteData(response.body);
+  const pagination = options.pagination ?? inferLegacyPagination(data);
+
+  switch (envelope) {
+    case 'data':
+      return { ...response, body: toLegacyDataResponse(data) };
+    case 'data+pagination':
+      return { ...response, body: toLegacyPaginatedDataResponse(Array.isArray(data) ? data : [data], pagination) };
+    case 'organization':
+    case 'organization+role':
+      return { ...response, body: toLegacyOrganizationResponse(normalizeLegacyOrganizationPayload(data)) };
+    case 'organizations':
+      return { ...response, body: toLegacyOrganizationListResponse(Array.isArray(data) ? data : [data]) };
+    case 'apiKey+metadata':
+      return { ...response, body: toLegacyApiKeyCreateResponse(data as { presentedKey: string; apiKey: CloudApiKey }) };
+    case 'apiKeys':
+      return { ...response, body: toLegacyApiKeyListResponse(Array.isArray(data) ? data : [data]) };
+    case 'member':
+      return { ...response, body: toLegacyMemberResponse(data as CloudOrganizationMember) };
+    case 'members':
+      return { ...response, body: toLegacyMemberResponse(Array.isArray(data) ? data : [data]) };
+    case 'config':
+      return { ...response, body: toLegacyConfigResponse(data as HostedRuntimeConfig) };
+    case 'webhookEndpoint':
+      return { ...response, body: toLegacyWebhookEndpointResponse(data as CloudWebhookEndpoint) };
+    case 'webhookEndpoints':
+      return { ...response, body: toLegacyWebhookEndpointListResponse(Array.isArray(data) ? data : [data]) };
+    case 'empty':
+      return { ...response, body: toLegacyEmptyResponse() };
+  }
+}
+
+function extractRouteData(body: unknown): unknown {
+  if (body && typeof body === 'object' && 'data' in body) return (body as { data: unknown }).data;
+  return body;
+}
+
+function inferLegacyPagination(data: unknown): LegacyPagination {
+  const total = Array.isArray(data) ? data.length : data == null ? 0 : 1;
+  return { ...DEFAULT_LEGACY_PAGINATION, total, totalPages: total > 0 ? 1 : 0 };
+}
+
+function normalizeLegacyOrganizationPayload(data: unknown): { organization: CloudOrganization; role?: CloudOrganizationRole } {
+  if (data && typeof data === 'object' && 'organization' in data) {
+    return data as { organization: CloudOrganization; role?: CloudOrganizationRole };
+  }
+  return { organization: data as CloudOrganization };
 }

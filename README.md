@@ -65,6 +65,8 @@ const routes = createCloudRouteHandlers({ services });
 // Hono/Express/Fastify handlers can adapt HTTP objects into routes.orders.createOrder(...)
 ```
 
+Old PayIn Cloud `/api/v1` clients can wrap route harness responses with `toLegacyCloudRouteResponse(...)` when they need legacy envelopes such as `{ apiKey, metadata }`, `{ config }`, or `{ endpoint }` instead of the newer route `{ data }` envelope.
+
 ## Boundary rule
 
 Cloud code belongs here. Do not put Cloud-only processors/managers/routes into `payin-open`. When old Cloud repo business code is needed, extract it behind interfaces in this repository instead of bulk-copying route/database coupling.

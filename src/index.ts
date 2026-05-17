@@ -19,9 +19,11 @@ export {
   toLegacyPaymentLinkResponse,
   toLegacyWebhookEndpointListResponse,
   toLegacyWebhookEndpointResponse,
+  toLegacyCloudRouteResponse,
 } from './routes/legacy-compat.js';
 export type {
   LegacyCloudHttpMethod,
+  LegacyCloudRouteResponseOptions,
   LegacyCloudResponseEnvelope,
   LegacyCloudRouteCompatibilityEntry,
   LegacyPagination,
