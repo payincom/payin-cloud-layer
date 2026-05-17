@@ -1,8 +1,8 @@
 import { serve } from '@hono/node-server';
-import { createPayInCloudRuntime } from './standalone-runtime.js';
+import { createPayInCloudRuntimeFromEnvironment } from './standalone-runtime.js';
 
 const port = Number(process.env.PORT ?? 3000);
-const runtime = createPayInCloudRuntime({
+const runtime = await createPayInCloudRuntimeFromEnvironment({
   tenant: {
     organizationId: process.env.PAYIN_ORGANIZATION_ID ?? 'org-cloud-layer-sandbox',
     tenantId: process.env.PAYIN_TENANT_ID ?? process.env.PAYIN_ORGANIZATION_ID ?? 'org-cloud-layer-sandbox',
@@ -15,5 +15,5 @@ const runtime = createPayInCloudRuntime({
 runtime.app.get('/healthz', (c) => c.json({ ok: true, service: 'payin-cloud-runtime' }));
 
 serve({ fetch: runtime.app.fetch, port }, (info) => {
-  console.log(JSON.stringify({ event: 'payin-cloud-runtime.started', port: info.port, tenant: runtime.tenant.tenantId }));
+  console.log(JSON.stringify({ event: 'payin-cloud-runtime.started', port: info.port, tenant: runtime.tenant.tenantId, persistence: runtime.persistence }));
 });

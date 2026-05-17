@@ -365,9 +365,12 @@ export class SqlCloudPaymentLinkRepository implements CloudPaymentLinkRepository
   }
 
   async save(link: CloudPaymentLink): Promise<NormalizedCloudPaymentLink> {
-    const normalized = normalizeCloudPaymentLink(link);
+    const normalized = normalizeCloudPaymentLink({
+      ...link,
+      id: link.id || createSqlGeneratedId('plink'),
+    });
     const result = await this.db.query<Record<string, unknown>>(
-      `INSERT INTO ${this.tableName} (id, organization_id, title, description, amount, currency, chain_options, status, slug, inventory_total, inventory_reserved) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      `INSERT INTO ${this.tableName} (id, organization_id, title, description, amount, currency, chain_options, status, slug, inventory_total, inventory_reserved) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, description = EXCLUDED.description, amount = EXCLUDED.amount, currency = EXCLUDED.currency, chain_options = EXCLUDED.chain_options, status = EXCLUDED.status, slug = EXCLUDED.slug, inventory_total = EXCLUDED.inventory_total, inventory_reserved = EXCLUDED.inventory_reserved, updated_at = NOW() RETURNING *`,
       [
         normalized.id,
         normalized.tenant.organizationId,
@@ -504,9 +507,12 @@ export class SqlCloudOrderRepository implements CloudOrderRepository {
   }
 
   async save(order: CloudOrder): Promise<NormalizedCloudOrder> {
-    const normalized = normalizeCloudOrder(order);
+    const normalized = normalizeCloudOrder({
+      ...order,
+      id: order.id || createSqlGeneratedId('order'),
+    });
     const result = await this.db.query<Record<string, unknown>>(
-      `INSERT INTO ${this.tableName} (id, organization_id, order_reference, amount, currency, chain_id, status, confirmed_received) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      `INSERT INTO ${this.tableName} (id, organization_id, order_reference, amount, currency, chain_id, status, confirmed_received) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (id) DO UPDATE SET order_reference = EXCLUDED.order_reference, amount = EXCLUDED.amount, currency = EXCLUDED.currency, chain_id = EXCLUDED.chain_id, status = EXCLUDED.status, confirmed_received = EXCLUDED.confirmed_received, updated_at = NOW() RETURNING *`,
       [
         normalized.id,
         normalized.tenant.organizationId,
@@ -547,6 +553,10 @@ export class SqlCloudOrderRepository implements CloudOrderRepository {
     );
     return result.rows.map((row) => mapOrderRow(row, tenant));
   }
+}
+
+function createSqlGeneratedId(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function mapOrderRow(row: Record<string, unknown>, tenant: CloudTenantContext): NormalizedCloudOrder {

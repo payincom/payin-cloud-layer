@@ -27,7 +27,7 @@ describe('SQL payment link/address pool write adapter contracts', () => {
     }))).resolves.toMatchObject({ id: 'plink-1', tenant });
 
     expect(db.queries[0]).toEqual({
-      text: 'INSERT INTO paymentlinks (id, organization_id, title, description, amount, currency, chain_options, status, slug, inventory_total, inventory_reserved) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
+      text: 'INSERT INTO paymentlinks (id, organization_id, title, description, amount, currency, chain_options, status, slug, inventory_total, inventory_reserved) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, description = EXCLUDED.description, amount = EXCLUDED.amount, currency = EXCLUDED.currency, chain_options = EXCLUDED.chain_options, status = EXCLUDED.status, slug = EXCLUDED.slug, inventory_total = EXCLUDED.inventory_total, inventory_reserved = EXCLUDED.inventory_reserved, updated_at = NOW() RETURNING *',
       values: ['plink-1', tenant.organizationId, 'Checkout', undefined, '25.50', 'USDC', ['ethereum-sepolia'], 'draft', undefined, undefined, 0],
     });
   });

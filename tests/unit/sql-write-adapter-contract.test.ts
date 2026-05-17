@@ -26,7 +26,7 @@ describe('SQL write adapter contracts', () => {
     }))).resolves.toMatchObject({ id: 'order-1', tenant });
 
     expect(db.queries[0]).toEqual({
-      text: 'INSERT INTO orders (id, organization_id, order_reference, amount, currency, chain_id, status, confirmed_received) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      text: 'INSERT INTO orders (id, organization_id, order_reference, amount, currency, chain_id, status, confirmed_received) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (id) DO UPDATE SET order_reference = EXCLUDED.order_reference, amount = EXCLUDED.amount, currency = EXCLUDED.currency, chain_id = EXCLUDED.chain_id, status = EXCLUDED.status, confirmed_received = EXCLUDED.confirmed_received, updated_at = NOW() RETURNING *',
       values: ['order-1', tenant.organizationId, 'ref-1', '10.00', 'USDC', 'ethereum-sepolia', 'pending', '0'],
     });
   });
