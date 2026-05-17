@@ -48,6 +48,12 @@ export type {
   CloudAddressPoolServiceOptions,
   CloudAddressPoolSummaryServiceRequest,
 } from './services/address-pool-service.js';
+export { CloudHostedConfigService } from './services/hosted-config-service.js';
+export type {
+  CloudHostedConfigGetServiceRequest,
+  CloudHostedConfigServiceOptions,
+  CloudHostedConfigUpdateServiceRequest,
+} from './services/hosted-config-service.js';
 export { CloudOrganizationService } from './services/organization-service.js';
 export type {
   CloudOrganizationAddMemberServiceRequest,
@@ -322,6 +328,7 @@ export {
   DEFAULT_HOSTED_PLAN_LIMITS,
   DefaultHostedConfigProvider,
   HostedLimitExceededError,
+  InMemoryHostedConfigRepository,
   StaticHostedConfigProvider,
   assertHostedLimit,
   mergeHostedRuntimeConfig,
@@ -329,6 +336,7 @@ export {
 } from './hosted-config.js';
 export type {
   HostedConfigProvider,
+  HostedConfigRepository,
   HostedLimitDecision,
   HostedRuntimeConfig,
   HostedRuntimeConfigInput,

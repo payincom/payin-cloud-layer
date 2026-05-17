@@ -42,6 +42,10 @@ export interface HostedConfigProvider {
   getTenantConfig(tenant: CloudTenantContext): Promise<HostedRuntimeConfig> | HostedRuntimeConfig;
 }
 
+export interface HostedConfigRepository extends HostedConfigProvider {
+  updateTenantConfig(tenant: CloudTenantContext, updates: Partial<HostedRuntimeConfigInput>): Promise<HostedRuntimeConfig> | HostedRuntimeConfig;
+}
+
 export class CloudHostedConfigError extends Error {
   readonly code = 'CLOUD_HOSTED_CONFIG_INVALID';
 
@@ -146,6 +150,24 @@ export function mergeHostedRuntimeConfig(
     secretRefs: { ...(base.secretRefs ?? {}), ...(override.secretRefs ?? {}) },
     metadata: { ...(base.metadata ?? {}), ...(override.metadata ?? {}) },
   });
+}
+
+export class InMemoryHostedConfigRepository implements HostedConfigRepository {
+  private readonly records = new Map<string, HostedRuntimeConfig>();
+
+  constructor(private readonly defaultConfig: Omit<HostedRuntimeConfigInput, 'tenant'> = {}) {}
+
+  getTenantConfig(tenant: CloudTenantContext): HostedRuntimeConfig {
+    const normalizedTenant = normalizeCloudTenantContext(tenant);
+    return this.records.get(normalizedTenant.organizationId) ?? normalizeHostedRuntimeConfig({ ...this.defaultConfig, tenant: normalizedTenant });
+  }
+
+  updateTenantConfig(tenant: CloudTenantContext, updates: Partial<HostedRuntimeConfigInput>): HostedRuntimeConfig {
+    const existing = this.getTenantConfig(tenant);
+    const updated = mergeHostedRuntimeConfig(existing, updates);
+    this.records.set(updated.tenant.organizationId, updated);
+    return updated;
+  }
 }
 
 export class StaticHostedConfigProvider implements HostedConfigProvider {
