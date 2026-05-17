@@ -13,7 +13,7 @@ Status legend:
 | Tenant context | `organization_id`, `organization_members` | `src/context.ts`, `src/tenant-resolver.ts` | `tests/unit/cloud-boundary.test.ts` | contracted / adapter-pending |
 | Organization roles/plans/status | `packages/auth/src/types/organizations.ts` | `src/organization.ts` | `tests/unit/organization-contract.test.ts` | contracted / adapter-pending |
 | Organization/member management | `packages/auth/src/organization-manager.ts`, `apps/api/src/routes/organizations.ts` | `src/organization.ts` | `tests/unit/organization-contract.test.ts` | contracted / adapter-pending |
-| API key auth/scope | `api_keys`, auth middleware | `src/api-key.ts` | `tests/unit/api-key.test.ts` | contracted / adapter-pending |
+| API key auth/scope | `api_keys`, auth middleware | `src/api-key.ts`, `src/services/api-key-service.ts`, `src/routes/api-key-routes.ts` | `tests/unit/api-key.test.ts`, `tests/unit/cloud-api-key-service.test.ts`, `tests/unit/api-key-route-harness.test.ts`, SQL + disposable integration | contracted / service-covered / route-covered / SQL-verified |
 | Hosted tenant config | config-management routes | `src/hosted-config.ts` | `tests/unit/hosted-config.test.ts` | contracted / adapter-pending |
 | Billing usage metering | hosted billing semantics | `src/usage-meter.ts`, `src/hooks.ts` | `tests/unit/billing-usage.test.ts` | contracted / adapter-pending |
 | Audit/risk/support | `packages/auth/src/middleware/audit-middleware.ts` | `src/audit-risk.ts` | `tests/unit/audit-risk-contract.test.ts` | contracted / adapter-pending |
@@ -28,7 +28,7 @@ Status legend:
 
 ## Current verification gate
 
-`npm run verify` must pass before every push. Latest default verification after route harness expansion: 39 test files / 143 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution for tenant/order/payment-link/address-pool/webhook/usage/audit adapters.
+`npm run verify` must pass before every push. Latest default verification after API key management expansion: 42 test files / 153 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution for tenant/API-key/order/payment-link/address-pool/webhook/usage/audit adapters.
 
 ## Reference inventory snapshot
 
