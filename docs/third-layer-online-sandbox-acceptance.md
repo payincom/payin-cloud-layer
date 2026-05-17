@@ -15,7 +15,8 @@ This acceptance records the new-environment online sandbox deployment for PayIn 
 - Service ID: `32021937-3194-4372-8fde-d5d9611ef8e5`
 - Environment: `production` inside the dedicated sandbox project
 - Public URL: `https://cloud-runtime-production-13e5.up.railway.app`
-- Successful deployment ID: `d65ee98f-069f-4013-9b48-517ae56ea26d`
+- Initial successful deployment ID: `d65ee98f-069f-4013-9b48-517ae56ea26d`
+- Latest deployment with public HTML checkout + public payment-link order API: `80d87f1d-7e0a-4f8a-9932-6a5090c7f0f1`
 
 ## Runtime entrypoint
 
@@ -42,7 +43,7 @@ Result:
   "baseUrl": "https://cloud-runtime-production-13e5.up.railway.app",
   "orderId": "order-1",
   "paymentLinkId": "plink-1",
-  "slug": "deployed-e2e-mp9gqgz2",
+  "slug": "deployed-e2e-mp9hlkzl",
   "endpointId": "wh-mp9gqgz2"
 }
 ```
@@ -52,10 +53,14 @@ Covered flow:
 - authenticated readiness
 - hosted config
 - order creation
-- public order status
+- public order status JSON
+- public order status HTML shell
 - payment link creation
 - payment link publish
 - public checkout data contract
+- public checkout HTML shell
+- public payment-link detail API
+- public payment-link order creation API
 - address pool import
 - address pool summary
 - webhook endpoint upsert
@@ -66,9 +71,10 @@ Covered flow:
 
 ## CI and integration evidence
 
-- GitHub Verify for deployable runtime: `https://github.com/payincom/payin-cloud-layer/actions/runs/25984820054`
+- GitHub Verify for public payment-link order API: `https://github.com/payincom/payin-cloud-layer/actions/runs/25985298027`
+- GitHub Verify for public checkout HTML shell: `https://github.com/payincom/payin-cloud-layer/actions/runs/25985220433`
 - Disposable PostgreSQL Integration after deployable runtime changes: `https://github.com/payincom/payin-cloud-layer/actions/runs/25984844257`
-- Local `npm run verify`: 61 test files passed, 225 passed / 1 skipped.
+- Local `npm run verify`: 61 test files passed, 226 passed / 1 skipped.
 
 ## Explicit non-goals
 
