@@ -7,6 +7,7 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 ## Completed in the new sandbox
 
 - Standalone Hono runtime deploys to Railway without the old PayIn Cloud repo.
+- Railway sandbox now runs against a managed Railway PostgreSQL service (`Postgres`) through `DATABASE_URL`; schema is applied on startup and core state survives service restart.
 - Core merchant API flow works online over public HTTP.
 - Public checkout now supports both JSON contracts and minimal HTML shells:
   - `GET /checkout/:slug` with `Accept: text/html`
@@ -59,10 +60,10 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 
 ### P1 — Persistence and operations
 
-- [ ] Deploy sandbox against managed PostgreSQL adapters instead of the current in-memory standalone runtime.
-- [ ] Apply migrations automatically or through a safe deployment step.
+- [x] Deploy sandbox against managed PostgreSQL adapters instead of the current in-memory standalone runtime.
+- [x] Apply minimal schema automatically on startup for the sandbox.
 - [ ] Configure production-grade secrets, CORS, domains, observability, rate limits, and rollback.
-- [ ] Run deployed E2E against managed PostgreSQL and confirm state survives redeploy.
+- [x] Run deployed E2E against managed PostgreSQL and confirm state survives restart.
 
 ### P2 — Compatibility hardening
 
@@ -75,5 +76,6 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 
 - Railway sandbox: `payincloudsandbox` / `cloud-runtime`
 - URL: `https://cloud-runtime-production-13e5.up.railway.app`
-- Latest public discovery/checkout/order/deposit/preview/transfer E2E passed with slug `deployed-e2e-mp9kwqw8`.
-- Latest commit implementing public transfer status APIs: `9789c51`.
+- Latest managed-PostgreSQL public discovery/checkout/order/deposit/preview/transfer E2E passed with slug `deployed-e2e-mp9l9rom`.
+- Latest persisted state verified after Railway restart: order `order-mp9l9sq5-yrndogpu` and payment-link slug `deployed-e2e-mp9l9rom` remained readable.
+- Latest commit implementing PostgreSQL-backed runtime: `b14a121`.

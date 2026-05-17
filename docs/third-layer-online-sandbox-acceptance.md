@@ -16,11 +16,13 @@ This acceptance records the new-environment online sandbox deployment for PayIn 
 - Environment: `production` inside the dedicated sandbox project
 - Public URL: `https://cloud-runtime-production-13e5.up.railway.app`
 - Initial successful deployment ID: `d65ee98f-069f-4013-9b48-517ae56ea26d`
-- Latest deployment with public HTML checkout + public payment-link order API: `80d87f1d-7e0a-4f8a-9932-6a5090c7f0f1`
+- Latest managed-PostgreSQL deployment: `11620c45-477a-4bf1-93b5-c05fd13ee920`
+- PostgreSQL service: `Postgres` (`5ea4506f-f674-4978-9230-2c06fc598168`)
 
 ## Runtime entrypoint
 
 - `src/standalone-runtime.ts` composes Cloud Layer services into a Hono runtime.
+- If `DATABASE_URL` is present, runtime uses SQL repositories, applies the minimal schema on startup, and seeds the sandbox org/admin API key/hosted config/subscription.
 - `src/server.ts` starts the runtime with `@hono/node-server`.
 - `/healthz` is unauthenticated for platform health checks.
 - `railway.json` configures `npm start` and `/healthz` health checks.
@@ -41,9 +43,9 @@ Result:
 {
   "ok": true,
   "baseUrl": "https://cloud-runtime-production-13e5.up.railway.app",
-  "orderId": "order-1",
-  "paymentLinkId": "plink-1",
-  "slug": "deployed-e2e-mp9hlkzl",
+  "orderId": "order-mp9l9sq5-yrndogpu",
+  "paymentLinkId": "plink-mp9l9tf1-sbemcpm1",
+  "slug": "deployed-e2e-mp9l9rom",
   "endpointId": "wh-mp9gqgz2"
 }
 ```
@@ -74,7 +76,9 @@ Covered flow:
 - GitHub Verify for public payment-link order API: `https://github.com/payincom/payin-cloud-layer/actions/runs/25985298027`
 - GitHub Verify for public checkout HTML shell: `https://github.com/payincom/payin-cloud-layer/actions/runs/25985220433`
 - Disposable PostgreSQL Integration after deployable runtime changes: `https://github.com/payincom/payin-cloud-layer/actions/runs/25984844257`
-- Local `npm run verify`: 61 test files passed, 226 passed / 1 skipped.
+- Managed Railway PostgreSQL deployment log showed `persistence="postgres"`.
+- Restart persistence check passed: order `order-mp9l9sq5-yrndogpu` and checkout slug `deployed-e2e-mp9l9rom` remained readable after `railway restart`.
+- Local `npm run verify`: 61 test files passed, 229 passed / 1 skipped.
 
 ## Explicit non-goals
 
