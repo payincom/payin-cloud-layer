@@ -34,6 +34,8 @@ import {
   SqlCloudUsageMeter,
   SqlCloudWebhookRepository,
   SqlHostedConfigRepository,
+  EnvironmentCloudWebhookSecretResolver,
+  HmacCloudWebhookSigner,
   StaticCloudWebhookSigner,
   StaticEntitlementProvider,
   SubscriptionBillingLimitEnforcer,
@@ -180,7 +182,7 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions & { ba
       orders: new CloudOrderService({ authenticator, entitlementProvider, hostedConfig, orders, usageMeter, auditTrail, billingLimitEnforcer }),
       paymentLinks: new CloudPaymentLinkService({ authenticator, entitlementProvider, hostedConfig, paymentLinks, usageMeter, auditTrail, billingLimitEnforcer }),
       addressPool: new CloudAddressPoolService({ authenticator, entitlementProvider, addressPool, usageMeter, auditTrail, billingLimitEnforcer }),
-      webhooks: new CloudWebhookService({ authenticator, entitlementProvider, webhooks, signer: new StaticCloudWebhookSigner(options.webhookSignature ?? process.env.PAYIN_WEBHOOK_TEST_SIGNATURE ?? 'runtime-sandbox-signature'), deliveries, usageMeter, auditTrail, billingLimitEnforcer }),
+      webhooks: new CloudWebhookService({ authenticator, entitlementProvider, webhooks, signer: createRuntimeWebhookSigner(options), deliveries, usageMeter, auditTrail, billingLimitEnforcer }),
       apiKeys: new CloudApiKeyService({ authenticator, entitlementProvider, apiKeys, usageMeter, auditTrail }),
       audit: new CloudAuditService({ authenticator, entitlementProvider, auditTrail }),
       organizations: new CloudOrganizationService({ authenticator, entitlementProvider, organizations, auditTrail }),
@@ -261,6 +263,13 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions & { ba
     listUsage: () => Promise.resolve(usageMeter.listUsage({ tenantId: tenant.organizationId })),
     repositories: { orders, paymentLinks, addressPool, webhooks: webhooks as InMemoryCloudWebhookRepository },
   };
+}
+
+function createRuntimeWebhookSigner(options: PayInCloudRuntimeOptions) {
+  if (process.env.PAYIN_WEBHOOK_SIGNING_MODE === 'hmac') {
+    return new HmacCloudWebhookSigner(new EnvironmentCloudWebhookSecretResolver());
+  }
+  return new StaticCloudWebhookSigner(options.webhookSignature ?? process.env.PAYIN_WEBHOOK_TEST_SIGNATURE ?? 'runtime-sandbox-signature');
 }
 
 function parseCsv(value: string | undefined): string[] | undefined {

@@ -59,6 +59,18 @@ into:
 
 The copied Admin UI preserves old code structure and adds only manual-test API-key login compatibility in `apps/admin/src/contexts/AuthContext.tsx` so the current Cloud layer sandbox can be tested before full auth migration is completed.
 
+## Reused old-production notification/webhook behavior
+
+The Cloud layer webhook signature path now reuses the old production notification package behavior from:
+
+- `/data/openclaw/workspace/payin/packages/notification/src/utils/signature.ts`
+
+Adapted into:
+
+- `src/webhooks.ts`
+
+The overlay keeps its Cloud-specific secret-reference boundary (`secret://...`) but signs deliveries with the legacy PayIn HMAC format `t=<unix-seconds>,v1=<sha256>` and supports `secret://env/<NAME>` resolution for hosted deployments. This replaces the earlier static-signature-only sandbox path for production mode while preserving static signatures for tests/manual sandbox compatibility.
+
 ## What to do next
 
 1. Replace the newly-written Cloud layer order/payment-link/checkout core with composition of `payin-open` Open runtime APIs or extracted Open packages.

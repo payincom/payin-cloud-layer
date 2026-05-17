@@ -3,12 +3,18 @@ import {
   CloudWebhookDeliveryError,
   CloudWebhookEndpointDisabledError,
   CloudWebhookSecretError,
+  EnvironmentCloudWebhookSecretResolver,
+  HmacCloudWebhookSigner,
   InMemoryCloudWebhookEndpointRepository,
+  InMemoryCloudWebhookSecretResolver,
   StaticCloudWebhookSigner,
   createCloudWebhookDelivery,
   filterWebhookEndpointsForEvent,
+  generateWebhookSignature,
   normalizeCloudWebhookEndpoint,
+  parseEnvironmentSecretRef,
   redactCloudWebhookEndpoint,
+  verifyWebhookSignature,
   type CloudWebhookEvent,
 } from '../../src/index.js';
 
@@ -108,6 +114,45 @@ describe('Cloud webhook/notification contract', () => {
       },
     });
     expect(JSON.stringify(delivery)).not.toContain('secret://tenant/webhook-signing');
+  });
+
+  it('generates and verifies legacy HMAC webhook signatures copied from old PayIn notification package behavior', async () => {
+    const endpoint = normalizeCloudWebhookEndpoint({
+      id: 'wh-hmac',
+      tenant,
+      url: 'https://merchant.example/webhook',
+      eventTypes: ['order.completed'],
+      signingSecretRef: 'secret://tenant/webhook-signing',
+      enabled: true,
+    });
+    const signer = new HmacCloudWebhookSigner(
+      new InMemoryCloudWebhookSecretResolver({ 'secret://tenant/webhook-signing': 'whsec_test' }),
+      () => new Date('2026-05-16T12:50:05.000Z'),
+    );
+
+    const delivery = await createCloudWebhookDelivery(endpoint, event, signer);
+
+    expect(delivery.headers['payin-signature']).toMatch(/^t=1778935805,v1=[a-f0-9]{64}$/);
+    expect(verifyWebhookSignature({
+      body: delivery.body,
+      signatureHeader: delivery.headers['payin-signature'],
+      secret: 'whsec_test',
+      now: new Date('2026-05-16T12:50:06.000Z'),
+    })).toBe(true);
+    expect(() => verifyWebhookSignature({
+      body: delivery.body,
+      signatureHeader: delivery.headers['payin-signature'],
+      secret: 'wrong-secret',
+      now: new Date('2026-05-16T12:50:06.000Z'),
+    })).toThrow(CloudWebhookSecretError);
+  });
+
+  it('supports environment-backed webhook secret refs without exposing raw secrets', () => {
+    expect(parseEnvironmentSecretRef('secret://env/PAYIN_WEBHOOK_SECRET')).toBe('PAYIN_WEBHOOK_SECRET');
+    expect(new EnvironmentCloudWebhookSecretResolver({ PAYIN_WEBHOOK_SECRET: 'whsec_env' }).resolve('secret://env/PAYIN_WEBHOOK_SECRET')).toBe('whsec_env');
+    expect(generateWebhookSignature('{"ok":true}', 'whsec_env', 1778935805))
+      .toBe('t=1778935805,v1=ef87e1219064d07aa2063c66bf3069bda852fea28c6bd6cbfb401555268bb388');
+    expect(() => parseEnvironmentSecretRef('secret://env/not-valid')).toThrow(CloudWebhookSecretError);
   });
 
   it('rejects disabled endpoints before delivery creation', async () => {

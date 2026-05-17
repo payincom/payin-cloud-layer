@@ -1,4 +1,5 @@
 import { normalizeCloudTenantContext, type CloudTenantContext, type NormalizedCloudTenantContext } from './context.js';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export type CloudWebhookEventType =
   | '*'
@@ -53,6 +54,10 @@ export interface CloudWebhookDelivery {
 
 export interface CloudWebhookSigner {
   sign(input: { endpointId: string; secretRef: string; body: string; event: CloudWebhookEvent }): Promise<string> | string;
+}
+
+export interface CloudWebhookSecretResolver {
+  resolve(secretRef: string): Promise<string> | string;
 }
 
 export interface CloudWebhookEndpointRepository {
@@ -169,6 +174,91 @@ export class StaticCloudWebhookSigner implements CloudWebhookSigner {
   sign(): string {
     return this.signature;
   }
+}
+
+/**
+ * Production-compatible webhook signer adapted from the old PayIn notification package.
+ *
+ * Signature format follows the legacy PayIn/Stripe-style scheme:
+ * `t=<unix-seconds>,v1=<hmac-sha256(timestamp.body)>`.
+ */
+export class HmacCloudWebhookSigner implements CloudWebhookSigner {
+  constructor(private readonly resolver: CloudWebhookSecretResolver, private readonly now: () => Date = () => new Date()) {}
+
+  async sign(input: { secretRef: string; body: string }): Promise<string> {
+    const secret = await this.resolver.resolve(input.secretRef);
+    const timestamp = Math.floor(this.now().getTime() / 1000);
+    return generateWebhookSignature(input.body, secret, timestamp);
+  }
+}
+
+export class InMemoryCloudWebhookSecretResolver implements CloudWebhookSecretResolver {
+  private readonly secrets: Map<string, string>;
+
+  constructor(secrets: Record<string, string> | Map<string, string>) {
+    this.secrets = secrets instanceof Map ? new Map(secrets) : new Map(Object.entries(secrets));
+  }
+
+  resolve(secretRef: string): string {
+    const secret = this.secrets.get(secretRef);
+    if (!secret) throw new CloudWebhookSecretError(`Cloud webhook secret not found for ref: ${secretRef}`);
+    return secret;
+  }
+}
+
+export class EnvironmentCloudWebhookSecretResolver implements CloudWebhookSecretResolver {
+  constructor(private readonly env: NodeJS.ProcessEnv = process.env) {}
+
+  resolve(secretRef: string): string {
+    const envName = parseEnvironmentSecretRef(secretRef);
+    const secret = this.env[envName];
+    if (!secret) throw new CloudWebhookSecretError(`Cloud webhook environment secret is not configured: ${envName}`);
+    return secret;
+  }
+}
+
+export function parseEnvironmentSecretRef(secretRef: string): string {
+  const prefix = 'secret://env/';
+  if (!secretRef.startsWith(prefix)) {
+    throw new CloudWebhookSecretError('Cloud webhook environment secret refs must use secret://env/<NAME>');
+  }
+  const envName = secretRef.slice(prefix.length);
+  if (!/^[A-Z_][A-Z0-9_]*$/.test(envName)) {
+    throw new CloudWebhookSecretError(`Invalid cloud webhook environment secret name: ${envName}`);
+  }
+  return envName;
+}
+
+export function generateWebhookSignature(body: string, secret: string, timestamp: number = Math.floor(Date.now() / 1000)): string {
+  const signedPayload = createWebhookSignaturePayload({ timestamp, body });
+  const signature = createHmac('sha256', secret).update(signedPayload, 'utf8').digest('hex');
+  return `t=${timestamp},v1=${signature}`;
+}
+
+export function verifyWebhookSignature(input: { body: string; signatureHeader: string; secret: string; toleranceSeconds?: number; now?: Date }): boolean {
+  const { timestamp, signature } = parseWebhookSignature(input.signatureHeader);
+  const now = Math.floor((input.now ?? new Date()).getTime() / 1000);
+  const toleranceSeconds = input.toleranceSeconds ?? 300;
+  if (Math.abs(now - timestamp) > toleranceSeconds) throw new CloudWebhookSecretError(`Cloud webhook signature timestamp outside tolerance: ${toleranceSeconds}s`);
+  const expected = createHmac('sha256', input.secret).update(createWebhookSignaturePayload({ timestamp, body: input.body }), 'utf8').digest('hex');
+  const expectedBuffer = Buffer.from(expected, 'hex');
+  const actualBuffer = Buffer.from(signature, 'hex');
+  if (expectedBuffer.length !== actualBuffer.length || !timingSafeEqual(expectedBuffer, actualBuffer)) {
+    throw new CloudWebhookSecretError('Cloud webhook signature mismatch');
+  }
+  return true;
+}
+
+export function parseWebhookSignature(signatureHeader: string): { timestamp: number; signature: string } {
+  const parts = signatureHeader.split(',');
+  const timestampPart = parts.find((part) => part.startsWith('t='));
+  const signaturePart = parts.find((part) => part.startsWith('v1='));
+  if (!timestampPart || !signaturePart) throw new CloudWebhookSecretError('Invalid cloud webhook signature format');
+  const timestamp = Number(timestampPart.slice(2));
+  const signature = signaturePart.slice(3);
+  if (!Number.isInteger(timestamp)) throw new CloudWebhookSecretError('Invalid cloud webhook signature timestamp');
+  if (!/^[a-f0-9]{64}$/i.test(signature)) throw new CloudWebhookSecretError('Invalid cloud webhook signature digest');
+  return { timestamp, signature };
 }
 
 export interface WebhookRetryDecisionInput {
