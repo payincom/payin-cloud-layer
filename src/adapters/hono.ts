@@ -3,7 +3,7 @@ import type { CloudRouteHandlersOptions } from '../routes/factory.js';
 import { createCloudRouteHandlers } from '../routes/factory.js';
 import { toLegacyCloudRouteResponse, type LegacyCloudResponseEnvelope, type LegacyPagination } from '../routes/legacy-compat.js';
 import type { CloudRouteResponse } from '../routes/http.js';
-import type { PublicDepositStatusView, PublicOrderStatusView, PublicPaymentLinkCheckoutView, PublicRuntimeDiscoveryView } from '../public-checkout.js';
+import type { PublicDepositStatusView, PublicOrderStatusView, PublicPaymentLinkCheckoutView, PublicRuntimeDiscoveryView, PublicTransferStatusView } from '../public-checkout.js';
 import { renderPublicDepositStatusHtml, renderPublicOrderStatusHtml, renderPublicPaymentLinkCheckoutHtml, toLegacyPublicOrderStatusResponse } from '../public-checkout.js';
 
 export interface CloudHonoPublicCheckoutAdapter {
@@ -13,6 +13,8 @@ export interface CloudHonoPublicCheckoutAdapter {
   getPaymentLinkPreview?(input: { paymentLinkId: string; token?: string; viewport?: string; requestOrigin: string }): Promise<PublicPaymentLinkCheckoutView | null> | PublicPaymentLinkCheckoutView | null;
   getDepositStatus?(input: { address: string; requestOrigin: string }): Promise<PublicDepositStatusView | null> | PublicDepositStatusView | null;
   getRuntimeDiscovery?(): Promise<PublicRuntimeDiscoveryView> | PublicRuntimeDiscoveryView;
+  getTransferStatus?(input: { transactionHash: string; requestOrigin: string }): Promise<PublicTransferStatusView | null> | PublicTransferStatusView | null;
+  listOrderTransfers?(input: { orderId: string; requestOrigin: string }): Promise<PublicTransferStatusView[]> | PublicTransferStatusView[];
 }
 
 export interface CloudHonoAdapterOptions extends CloudRouteHandlersOptions {
@@ -124,6 +126,19 @@ export function createCloudHonoApp(options: CloudHonoAdapterOptions): CloudHonoA
       const deposit = await options.publicCheckout!.getDepositStatus({ address: c.req.param('address'), requestOrigin: requestOrigin(c) });
       if (!deposit) return c.json({ success: false, error: 'Deposit Not Found', message: 'We could not locate this deposit address.' }, 404);
       return c.json({ success: true, data: deposit });
+    });
+
+    app.get('/api/transfers/:transactionHash/status', async (c) => {
+      if (!options.publicCheckout!.getTransferStatus) return c.json({ success: false, error: 'Transfer status is not configured' }, 501);
+      const transfer = await options.publicCheckout!.getTransferStatus({ transactionHash: c.req.param('transactionHash'), requestOrigin: requestOrigin(c) });
+      if (!transfer) return c.json({ success: false, error: 'Transfer Not Found', message: 'We could not locate this transfer.' }, 404);
+      return c.json({ success: true, data: transfer });
+    });
+
+    app.get('/api/orders/:orderId/transfers', async (c) => {
+      if (!options.publicCheckout!.listOrderTransfers) return c.json({ success: false, error: 'Order transfers are not configured' }, 501);
+      const transfers = await options.publicCheckout!.listOrderTransfers({ orderId: c.req.param('orderId'), requestOrigin: requestOrigin(c) });
+      return c.json({ success: true, data: transfers });
     });
 
     app.get('/checkout/:slug', async (c) => {

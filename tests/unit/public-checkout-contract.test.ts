@@ -4,6 +4,7 @@ import {
   createPublicPaymentLinkCheckoutView,
   createPublicDepositStatusView,
   createPublicRuntimeDiscoveryView,
+  createPublicTransferStatusView,
   renderPublicDepositStatusHtml,
   renderPublicOrderStatusHtml,
   renderPublicPaymentLinkCheckoutHtml,
@@ -149,6 +150,24 @@ describe('public checkout contracts', () => {
     expect(createPublicRuntimeDiscoveryView({ chains: ['ethereum-sepolia'], tokens: ['USDC'] })).toEqual({
       chains: [{ id: 'ethereum-sepolia', name: 'Ethereum Sepolia', status: 'enabled' }],
       tokens: [{ symbol: 'USDC', status: 'enabled' }],
+    });
+  });
+
+  it('builds public transfer status views', () => {
+    expect(createPublicTransferStatusView({
+      transactionHash: ' 0xtx ',
+      status: 'detected',
+      orderId: 'order-transfer',
+      chain: 'ethereum-sepolia',
+      token: 'USDC',
+      amount: '10.00',
+      confirmations: 1.8,
+      requiredConfirmations: 2,
+    })).toMatchObject({
+      transactionHash: '0xtx',
+      status: 'detected',
+      orderId: 'order-transfer',
+      confirmations: 1,
     });
   });
 });

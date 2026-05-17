@@ -84,6 +84,7 @@ export {
   createPublicPaymentLinkCheckoutView,
   createPublicDepositStatusView,
   createPublicRuntimeDiscoveryView,
+  createPublicTransferStatusView,
   renderPublicOrderStatusHtml,
   renderPublicPaymentLinkCheckoutHtml,
   renderPublicDepositStatusHtml,
@@ -99,6 +100,7 @@ export type {
   PublicPaymentLinkCheckoutView,
   PublicRuntimeDiscoveryView,
   PublicTokenView,
+  PublicTransferStatusView,
 } from './public-checkout.js';
 
 export { createCloudServiceLayer } from './services/factory.js';

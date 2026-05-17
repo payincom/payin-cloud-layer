@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createCloudHonoApp, createPublicDepositStatusView, createPublicOrderStatusView, createPublicPaymentLinkCheckoutView, createRuntimeReadinessReport } from '../../src/index.js';
+import { createCloudHonoApp, createPublicDepositStatusView, createPublicOrderStatusView, createPublicPaymentLinkCheckoutView, createPublicTransferStatusView, createRuntimeReadinessReport } from '../../src/index.js';
 
 
 async function responseJson(response: Response | Promise<Response>): Promise<unknown> {
@@ -98,6 +98,8 @@ describe('Cloud Hono adapter', () => {
           ? createPublicDepositStatusView({ tenant: { organizationId: 'org-public' }, address, protocol: 'evm', state: 'bound', depositReference: 'dep-public' }, { requestOrigin })
           : null,
         getRuntimeDiscovery: async () => ({ chains: [{ id: 'ethereum-sepolia', name: 'Ethereum Sepolia', status: 'enabled' }], tokens: [{ symbol: 'USDC', status: 'enabled' }] }),
+        listOrderTransfers: async ({ orderId }) => orderId === 'order-public' ? [createPublicTransferStatusView({ transactionHash: '0xtx-public', status: 'detected', orderId, chain: 'ethereum-sepolia', token: 'USDC', amount: '10', confirmations: 1 })] : [],
+        getTransferStatus: async ({ transactionHash }) => transactionHash === '0xtx-public' ? createPublicTransferStatusView({ transactionHash, status: 'detected', orderId: 'order-public', chain: 'ethereum-sepolia', token: 'USDC', amount: '10', confirmations: 1 }) : null,
       },
     });
 
@@ -122,6 +124,8 @@ describe('Cloud Hono adapter', () => {
     expect(depositHtml.status).toBe(200);
     await expect(depositHtml.text()).resolves.toContain('id="payin-deposit-status-data"');
     await expect(responseJson(app.request('https://pay.example/api/deposits/0xdeposit/status'))).resolves.toMatchObject({ success: true, data: { address: '0xdeposit', depositReference: 'dep-public' } });
+    await expect(responseJson(app.request('https://pay.example/api/orders/order-public/transfers'))).resolves.toMatchObject({ success: true, data: [{ transactionHash: '0xtx-public', status: 'detected' }] });
+    await expect(responseJson(app.request('https://pay.example/api/transfers/0xtx-public/status'))).resolves.toMatchObject({ success: true, data: { transactionHash: '0xtx-public', orderId: 'order-public' } });
     await expect(responseStatus(app.request('https://pay.example/checkout/missing'))).resolves.toBe(404);
   });
 

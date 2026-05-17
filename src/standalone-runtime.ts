@@ -26,6 +26,7 @@ import {
   createPublicOrderStatusView,
   createPublicPaymentLinkCheckoutView,
   createPublicRuntimeDiscoveryView,
+  createPublicTransferStatusView,
   createRuntimeReadinessReport,
   type CloudHonoApp,
   type CloudTenantContext,
@@ -173,6 +174,15 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions = {}):
         const config = await hostedConfig.getTenantConfig(tenant);
         return createPublicRuntimeDiscoveryView({ chains: config.enabledChains, tokens: config.enabledTokens });
       },
+      listOrderTransfers: async ({ orderId }) => {
+        const order = await orders.get(orderId, tenant) as NormalizedCloudOrder | null;
+        return order ? [createRuntimeTransferStatus(order)] : [];
+      },
+      getTransferStatus: async ({ transactionHash }) => {
+        const allOrders = await orders.list(tenant) as NormalizedCloudOrder[];
+        const order = allOrders.find((candidate) => runtimeTransferHash(candidate) === transactionHash) ?? null;
+        return order ? createRuntimeTransferStatus(order) : null;
+      },
     },
   });
 
@@ -183,6 +193,26 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions = {}):
     listUsage: () => Promise.resolve(usageMeter.listUsage({ tenantId: tenant.organizationId })),
     repositories: { orders, paymentLinks, addressPool, webhooks },
   };
+}
+
+function createRuntimeTransferStatus(order: NormalizedCloudOrder) {
+  const confirmed = order.status === 'completed';
+  return createPublicTransferStatusView({
+    transactionHash: runtimeTransferHash(order),
+    status: confirmed ? 'confirmed' : 'pending',
+    orderId: order.id,
+    depositAddress: order.paymentAddress,
+    chain: order.chainId,
+    token: order.currency,
+    amount: order.confirmedReceived && Number(order.confirmedReceived) > 0 ? order.confirmedReceived : order.amount,
+    confirmations: confirmed ? 1 : 0,
+    requiredConfirmations: 1,
+    ...(confirmed ? { confirmedAt: order.updatedAt ?? new Date() } : {}),
+  });
+}
+
+function runtimeTransferHash(order: NormalizedCloudOrder): string {
+  return order.completionTxHash ?? `pending-${order.id}`;
 }
 
 function runtimeReadinessChecks(input: { hostedConfigConfigured: boolean; webhookCount: number; smoke?: boolean }) {

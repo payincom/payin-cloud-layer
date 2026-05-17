@@ -76,6 +76,20 @@ export interface PublicRuntimeDiscoveryView {
   tokens: PublicTokenView[];
 }
 
+export interface PublicTransferStatusView {
+  transactionHash: string;
+  status: 'pending' | 'detected' | 'confirmed' | 'failed';
+  orderId?: string;
+  depositAddress?: string;
+  chain: string;
+  token: string;
+  amount: string;
+  confirmations: number;
+  requiredConfirmations?: number | null;
+  detectedAt?: Date;
+  confirmedAt?: Date;
+}
+
 export function createPublicOrderStatusView(input: PublicOrderStatusInput): PublicOrderStatusView {
   const summary = createCloudOrderStatusSummary(input.order);
   const transfers = input.transfers ?? [];
@@ -212,6 +226,16 @@ export function createPublicRuntimeDiscoveryView(input: { chains: string[]; toke
   return {
     chains: input.chains.map((id) => ({ id, name: humanizeIdentifier(id), status: 'enabled' as const })),
     tokens: input.tokens.map((symbol) => ({ symbol, status: 'enabled' as const })),
+  };
+}
+
+export function createPublicTransferStatusView(input: PublicTransferStatusView): PublicTransferStatusView {
+  const transactionHash = input.transactionHash.trim();
+  if (!transactionHash) throw new Error('transactionHash is required');
+  return {
+    ...input,
+    transactionHash,
+    confirmations: Math.max(0, Math.floor(input.confirmations)),
   };
 }
 

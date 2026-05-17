@@ -36,6 +36,10 @@ const statusHtml = await fetch(`${cleanBase}/pay/order/${order.data.id}`, { head
 const statusHtmlText = await statusHtml.text();
 expect(statusHtml.ok, 'public order status HTML returns success', { status: statusHtml.status, body: statusHtmlText });
 expect(statusHtmlText.includes('id="payin-order-status-data"'), 'public order status HTML embeds JSON data');
+const orderTransfers = await request(`/api/orders/${order.data.id}/transfers`);
+expect(orderTransfers?.data?.[0]?.transactionHash === `pending-${order.data.id}`, 'order transfers include pending transfer placeholder', orderTransfers);
+const transferStatus = await request(`/api/transfers/${orderTransfers.data[0].transactionHash}/status`);
+expect(transferStatus?.data?.orderId === order.data.id, 'transfer status links back to order', transferStatus);
 const link = await request('/api/v1/payment-links', { method: 'POST', headers: authHeaders, body: JSON.stringify({ title: `Deployed E2E ${suffix}`, amount: '25.50', currency: 'USDC', chainOptions: ['ethereum-sepolia'], inventoryTotal: 5 }) });
 expect(link?.data?.id, 'payment link created', link);
 const slug = `deployed-e2e-${suffix}`;
