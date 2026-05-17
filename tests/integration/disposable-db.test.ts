@@ -5,6 +5,7 @@ import {
   SqlCloudApiKeyRepository,
   SqlCloudAuditTrail,
   SqlCloudOrderRepository,
+  SqlCloudOrganizationRepository,
   SqlCloudPaymentLinkRepository,
   SqlCloudTenantResolver,
   SqlCloudUsageMeter,
@@ -44,6 +45,26 @@ describe.runIf(enabled)('disposable database integration', () => {
        ON CONFLICT (organization_id, user_id) DO UPDATE SET role = EXCLUDED.role, status = EXCLUDED.status`,
       ['org-integration', 'user-integration', 'admin', 'active']
     );
+
+    const organizations = new SqlCloudOrganizationRepository(executor);
+    await expect(organizations.getByTenant({ organizationId: 'org-integration' })).resolves.toMatchObject({
+      id: 'org-integration',
+      name: 'Integration Org',
+      planType: 'pro',
+    });
+    await expect(organizations.updateByTenant({ organizationId: 'org-integration' }, { name: 'Integration Org Updated' })).resolves.toMatchObject({
+      id: 'org-integration',
+      name: 'Integration Org Updated',
+    });
+    await expect(organizations.addMember({ organizationId: 'org-integration', userId: 'user-added', role: 'viewer', status: 'active', joinedAt: new Date('2026-05-17T00:30:00.000Z') })).resolves.toMatchObject({
+      organizationId: 'org-integration',
+      userId: 'user-added',
+      role: 'viewer',
+    });
+    await expect(organizations.updateMember({ organizationId: 'org-integration' }, 'user-added', { role: 'member', status: 'active' })).resolves.toMatchObject({
+      userId: 'user-added',
+      role: 'member',
+    });
 
     const apiKeys = new SqlCloudApiKeyRepository(executor);
     await apiKeys.create({

@@ -20,7 +20,11 @@ CREATE TABLE IF NOT EXISTS organizations (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   slug TEXT NOT NULL UNIQUE,
+  avatar_url TEXT,
+  website TEXT,
+  description TEXT,
   plan_type TEXT NOT NULL DEFAULT 'free',
+  monthly_order_limit INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -28,10 +32,14 @@ CREATE TABLE IF NOT EXISTS organizations (
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE IF NOT EXISTS organization_members (
+  id BIGSERIAL,
   organization_id TEXT NOT NULL REFERENCES organizations(id),
   user_id TEXT NOT NULL,
   role TEXT NOT NULL,
   status TEXT NOT NULL,
+  invited_by TEXT,
+  invited_at TIMESTAMPTZ,
+  joined_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (organization_id, user_id)
 );
