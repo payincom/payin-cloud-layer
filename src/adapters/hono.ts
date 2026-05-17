@@ -4,7 +4,7 @@ import { createCloudRouteHandlers } from '../routes/factory.js';
 import { toLegacyCloudRouteResponse, type LegacyCloudResponseEnvelope, type LegacyPagination } from '../routes/legacy-compat.js';
 import type { CloudRouteResponse } from '../routes/http.js';
 import type { PublicOrderStatusView, PublicPaymentLinkCheckoutView } from '../public-checkout.js';
-import { toLegacyPublicOrderStatusResponse } from '../public-checkout.js';
+import { renderPublicOrderStatusHtml, renderPublicPaymentLinkCheckoutHtml, toLegacyPublicOrderStatusResponse } from '../public-checkout.js';
 
 export interface CloudHonoPublicCheckoutAdapter {
   getOrderStatus(input: { orderId: string }): Promise<PublicOrderStatusView | null> | PublicOrderStatusView | null;
@@ -64,7 +64,14 @@ export function createCloudHonoApp(options: CloudHonoAdapterOptions): CloudHonoA
     app.get('/api/order-status/:orderId', async (c) => {
       const status = await options.publicCheckout!.getOrderStatus({ orderId: c.req.param('orderId') });
       if (!status) return c.json({ success: false, error: 'Order not found', message: `Order with ID "${c.req.param('orderId')}" does not exist` }, 404);
+      if (wantsHtml(c)) return c.html(renderPublicOrderStatusHtml(status));
       return c.json(toLegacyPublicOrderStatusResponse(status));
+    });
+
+    app.get('/pay/order/:orderId', async (c) => {
+      const status = await options.publicCheckout!.getOrderStatus({ orderId: c.req.param('orderId') });
+      if (!status) return c.html('<!doctype html><title>Order not found</title><h1>Order not found</h1>', 404);
+      return c.html(renderPublicOrderStatusHtml(status));
     });
 
     app.get('/checkout/:slug', async (c) => {
@@ -72,6 +79,7 @@ export function createCloudHonoApp(options: CloudHonoAdapterOptions): CloudHonoA
       if (!slug) return c.json({ success: false, error: 'Invalid payment link', message: 'Provide a valid payment link slug to open checkout.' }, 400);
       const checkout = await options.publicCheckout!.getPaymentLinkCheckout({ slug, requestOrigin: requestOrigin(c) });
       if (!checkout) return c.json({ success: false, error: 'Payment Link Not Found', message: 'We could not locate this payment link. It may have expired or been removed.' }, 404);
+      if (wantsHtml(c)) return c.html(renderPublicPaymentLinkCheckoutHtml(checkout));
       return c.json({ success: true, data: checkout });
     });
   }
@@ -115,4 +123,9 @@ function requestOrigin(c: { req: { raw: Request; header: (name: string) => strin
   const protocol = c.req.header('x-forwarded-proto') ?? url.protocol.replace(/:$/, '');
   const host = c.req.header('x-forwarded-host') ?? c.req.header('host') ?? url.host;
   return `${protocol}://${host}`.replace(/\/+$/, '');
+}
+
+function wantsHtml(c: { req: { header: (name: string) => string | undefined } }): boolean {
+  const accept = c.req.header('accept') ?? '';
+  return accept.includes('text/html') && !accept.includes('application/json');
 }

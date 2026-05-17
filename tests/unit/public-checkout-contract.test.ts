@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   createPublicOrderStatusView,
   createPublicPaymentLinkCheckoutView,
+  renderPublicOrderStatusHtml,
+  renderPublicPaymentLinkCheckoutHtml,
   toLegacyPublicOrderStatusResponse,
 } from '../../src/index.js';
 
@@ -93,5 +95,30 @@ describe('public checkout contracts', () => {
       orderBaseUrl: 'https://pay.example/pay/order',
       shareUrl: 'https://pay.example/checkout/public-checkout',
     });
+  });
+
+  it('renders standalone public checkout HTML shells with embedded JSON data', () => {
+    const checkout = createPublicPaymentLinkCheckoutView({
+      id: 'plink-html',
+      tenant,
+      title: 'HTML checkout',
+      description: 'Hosted checkout page',
+      amount: '12.00',
+      currency: 'USDC',
+      chainOptions: ['ethereum-sepolia'],
+      status: 'published',
+      slug: 'html-checkout',
+    }, { requestOrigin: 'https://pay.example' });
+
+    expect(renderPublicPaymentLinkCheckoutHtml(checkout)).toContain('<!doctype html>');
+    expect(renderPublicPaymentLinkCheckoutHtml(checkout)).toContain('id="payin-checkout-data"');
+    expect(renderPublicPaymentLinkCheckoutHtml(checkout)).toContain('HTML checkout');
+
+    const status = createPublicOrderStatusView({
+      order: { id: 'order-html', tenant, orderReference: 'ref-html', amount: '12.00', currency: 'USDC', chainId: 'ethereum-sepolia', status: 'pending', confirmedReceived: '0' },
+    });
+    expect(renderPublicOrderStatusHtml(status)).toContain('<!doctype html>');
+    expect(renderPublicOrderStatusHtml(status)).toContain('id="payin-order-status-data"');
+    expect(renderPublicOrderStatusHtml(status)).toContain('ref-html');
   });
 });

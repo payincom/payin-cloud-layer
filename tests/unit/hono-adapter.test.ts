@@ -93,6 +93,12 @@ describe('Cloud Hono adapter', () => {
 
     await expect(responseJson(app.request('https://pay.example/api/order-status/order-public'))).resolves.toMatchObject({ success: true, data: { orderId: 'order-public', status: 'pending' } });
     await expect(responseJson(app.request('https://pay.example/checkout/public-checkout'))).resolves.toMatchObject({ success: true, data: { id: 'plink-public', shareUrl: 'https://pay.example/checkout/public-checkout' } });
+    const checkoutHtml = await app.request('https://pay.example/checkout/public-checkout', { headers: { accept: 'text/html' } });
+    expect(checkoutHtml.headers.get('content-type')).toContain('text/html');
+    await expect(checkoutHtml.text()).resolves.toContain('id="payin-checkout-data"');
+    const orderHtml = await app.request('https://pay.example/pay/order/order-public', { headers: { accept: 'text/html' } });
+    expect(orderHtml.headers.get('content-type')).toContain('text/html');
+    await expect(orderHtml.text()).resolves.toContain('id="payin-order-status-data"');
     await expect(responseStatus(app.request('https://pay.example/checkout/missing'))).resolves.toBe(404);
   });
 

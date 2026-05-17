@@ -82,6 +82,8 @@ export type {
 export {
   createPublicOrderStatusView,
   createPublicPaymentLinkCheckoutView,
+  renderPublicOrderStatusHtml,
+  renderPublicPaymentLinkCheckoutHtml,
   toLegacyPublicOrderStatusResponse,
 } from './public-checkout.js';
 export type {

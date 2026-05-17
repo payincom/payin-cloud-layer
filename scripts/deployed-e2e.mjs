@@ -28,6 +28,10 @@ const order = await request('/api/v1/orders', { method: 'POST', headers: authHea
 expect(order?.data?.id, 'order created', order);
 const status = await request(`/api/order-status/${order.data.id}`);
 expect(status?.data?.orderReference === `deployed-e2e-${suffix}`, 'public order status matches', status);
+const statusHtml = await fetch(`${cleanBase}/pay/order/${order.data.id}`, { headers: { accept: 'text/html' } });
+const statusHtmlText = await statusHtml.text();
+expect(statusHtml.ok, 'public order status HTML returns success', { status: statusHtml.status, body: statusHtmlText });
+expect(statusHtmlText.includes('id="payin-order-status-data"'), 'public order status HTML embeds JSON data');
 const link = await request('/api/v1/payment-links', { method: 'POST', headers: authHeaders, body: JSON.stringify({ title: `Deployed E2E ${suffix}`, amount: '25.50', currency: 'USDC', chainOptions: ['ethereum-sepolia'], inventoryTotal: 5 }) });
 expect(link?.data?.id, 'payment link created', link);
 const slug = `deployed-e2e-${suffix}`;
@@ -35,6 +39,10 @@ const published = await request(`/api/v1/payment-links/${link.data.id}/publish`,
 expect(published?.data?.slug === slug, 'payment link published with slug', published);
 const checkout = await request(`/checkout/${slug}`);
 expect(checkout?.data?.slug === slug, 'public checkout matches slug', checkout);
+const checkoutHtml = await fetch(`${cleanBase}/checkout/${slug}`, { headers: { accept: 'text/html' } });
+const checkoutHtmlText = await checkoutHtml.text();
+expect(checkoutHtml.ok, 'public checkout HTML returns success', { status: checkoutHtml.status, body: checkoutHtmlText });
+expect(checkoutHtmlText.includes('id="payin-checkout-data"'), 'public checkout HTML embeds JSON data');
 const address = `0x${suffix.padStart(40, '1').slice(0, 40)}`;
 const imported = await request('/api/v1/address-pool/import', { method: 'POST', headers: authHeaders, body: JSON.stringify({ protocol: 'evm', addresses: [{ address }] }) });
 expect(imported?.data?.[0]?.address === address, 'address imported', imported);
