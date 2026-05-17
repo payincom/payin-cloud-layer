@@ -2,6 +2,20 @@ export { createCloudApiKeyRouteHandlers } from './routes/api-key-routes.js';
 export type { CloudApiKeyCreateRouteBody, CloudApiKeyRouteHandlersOptions } from './routes/api-key-routes.js';
 export { createCloudRouteHandlers } from './routes/factory.js';
 export type { CloudRouteHandlersOptions } from './routes/factory.js';
+export {
+  CLOUD_LEGACY_ROUTE_COMPATIBILITY,
+  toLegacyApiKeyCreateResponse,
+  toLegacyApiKeyListResponse,
+  toLegacyEmptyResponse,
+  toLegacyMemberResponse,
+  toLegacyOrganizationListResponse,
+  toLegacyOrganizationResponse,
+} from './routes/legacy-compat.js';
+export type {
+  LegacyCloudHttpMethod,
+  LegacyCloudResponseEnvelope,
+  LegacyCloudRouteCompatibilityEntry,
+} from './routes/legacy-compat.js';
 export { createCloudAddressPoolRouteHandlers } from './routes/address-pool-routes.js';
 export type { CloudAddressPoolImportRouteBody, CloudAddressPoolRouteHandlersOptions } from './routes/address-pool-routes.js';
 export { createCloudOrganizationRouteHandlers } from './routes/organization-routes.js';
