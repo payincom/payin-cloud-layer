@@ -17,7 +17,13 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 - Public deposit and preview page shells now support:
   - `GET /pay/deposit/:address`
   - `GET /checkout/preview/:id?token=...&viewport=...`
-- Online E2E validates checkout JSON, checkout HTML, checkout preview HTML, order status HTML, deposit HTML, public checkout order creation, merchant APIs, webhook tests, smoke, and auth failure.
+- Public discovery/status APIs now support:
+  - `GET /api/chains`
+  - `GET /api/tokens`
+  - `GET /api/v1/chains`
+  - `GET /api/v1/tokens`
+  - `GET /api/deposits/:address/status`
+- Online E2E validates chain/token discovery, checkout JSON, checkout HTML, checkout preview HTML, order status HTML, deposit HTML/status API, public checkout order creation, merchant APIs, webhook tests, smoke, and auth failure.
 
 ## Remaining gaps before full production replacement
 
@@ -34,11 +40,11 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 
 ### P0 — Deposits/transfers/chains/tokens
 
-- [ ] Chain and token discovery routes.
-- [ ] Deposit reference APIs.
+- [x] Minimal chain and token discovery routes.
+- [x] Minimal deposit status/reference API for address-bound deposits.
 - [ ] Transfer detection/status APIs.
 - [x] Minimal address-bound deposit page shell.
-- [ ] Deposit status polling JSON API beyond the HTML shell.
+- [x] Minimal deposit status polling JSON API.
 - [ ] Real chain monitor integration rather than in-memory status only.
 
 ### P1 — Management API surface
@@ -67,5 +73,5 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 
 - Railway sandbox: `payincloudsandbox` / `cloud-runtime`
 - URL: `https://cloud-runtime-production-13e5.up.railway.app`
-- Latest public checkout/order/deposit/preview E2E passed with slug `deployed-e2e-mp9i4z0h`.
-- Latest commit implementing deposit and preview pages: `7c6b908`.
+- Latest public discovery/checkout/order/deposit/preview E2E passed with slug `deployed-e2e-mp9jk9mj`.
+- Latest commit implementing public discovery and deposit status APIs: `255bee7`.
