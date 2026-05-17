@@ -12,9 +12,9 @@ Status legend:
 |---|---|---|---|---|
 | Tenant context | `organization_id`, `organization_members` | `src/context.ts`, `src/tenant-resolver.ts` | `tests/unit/cloud-boundary.test.ts` | contracted / adapter-pending |
 | Organization roles/plans/status | `packages/auth/src/types/organizations.ts` | `src/organization.ts` | `tests/unit/organization-contract.test.ts` | contracted / adapter-pending |
-| Organization/member management | `packages/auth/src/organization-manager.ts`, `apps/api/src/routes/organizations.ts` | `src/organization.ts` | `tests/unit/organization-contract.test.ts` | contracted / adapter-pending |
+| Organization/member management | `packages/auth/src/organization-manager.ts`, `apps/api/src/routes/organizations.ts` | `src/organization.ts`, `src/services/organization-service.ts`, `src/routes/organization-routes.ts` | contract + service + route + SQL + disposable integration tests | contracted / service-covered / route-covered / SQL-verified |
 | API key auth/scope | `api_keys`, auth middleware | `src/api-key.ts`, `src/services/api-key-service.ts`, `src/routes/api-key-routes.ts` | `tests/unit/api-key.test.ts`, `tests/unit/cloud-api-key-service.test.ts`, `tests/unit/api-key-route-harness.test.ts`, SQL + disposable integration | contracted / service-covered / route-covered / SQL-verified |
-| Hosted tenant config | config-management routes | `src/hosted-config.ts` | `tests/unit/hosted-config.test.ts` | contracted / adapter-pending |
+| Hosted tenant config | config-management routes | `src/hosted-config.ts`, `src/services/hosted-config-service.ts`, `src/routes/hosted-config-routes.ts` | contract + service + route tests | contracted / service-covered / route-covered |
 | Billing usage metering | hosted billing semantics | `src/usage-meter.ts`, `src/hooks.ts` | `tests/unit/billing-usage.test.ts` | contracted / adapter-pending |
 | Audit/risk/support | `packages/auth/src/middleware/audit-middleware.ts` | `src/audit-risk.ts` | `tests/unit/audit-risk-contract.test.ts` | contracted / adapter-pending |
 | Orders | `orders`, multi-tenant API tests | `src/orders.ts`, `src/cloud-manager.ts`, `src/services/order-service.ts` | `tests/unit/order-contract.test.ts`, `tests/unit/cloud-manager.test.ts`, `tests/unit/cloud-order-service.test.ts` | contracted / service-covered / adapter-pending |
@@ -28,7 +28,7 @@ Status legend:
 
 ## Current verification gate
 
-`npm run verify` must pass before every push. Latest default verification after API key management expansion: 42 test files / 153 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution for tenant/API-key/order/payment-link/address-pool/webhook/usage/audit adapters.
+`npm run verify` must pass before every push. Latest default verification after organization/config management expansion: 47 test files / 166 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution for tenant/organization/member/API-key/order/payment-link/address-pool/webhook/usage/audit adapters.
 
 ## Reference inventory snapshot
 
@@ -47,4 +47,5 @@ Cloud API route extraction:
 
 - compare old route request/response shapes against the framework-neutral route harnesses
 - add framework adapter examples for Hono/Express/Fastify if needed
-- expand route harness coverage to auth/org/API-key management routes
+- expand hosted config persistence into SQL contracts/disposable integration
+- then continue notification delivery persistence/queue and billing/subscription enforcement
