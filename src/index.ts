@@ -1,5 +1,7 @@
 export { createCloudApiKeyRouteHandlers } from './routes/api-key-routes.js';
 export type { CloudApiKeyCreateRouteBody, CloudApiKeyRouteHandlersOptions } from './routes/api-key-routes.js';
+export { createCloudAuditRouteHandlers } from './routes/audit-routes.js';
+export type { CloudAuditEventListRouteQuery, CloudAuditRouteHandlersOptions } from './routes/audit-routes.js';
 export { createCloudRouteHandlers } from './routes/factory.js';
 export type { CloudRouteHandlersOptions } from './routes/factory.js';
 export { createCloudHonoApp } from './adapters/hono.js';
@@ -113,6 +115,11 @@ export type {
   CloudApiKeyRevokeServiceRequest,
   CloudApiKeyServiceOptions,
 } from './services/api-key-service.js';
+export { CloudAuditService } from './services/audit-service.js';
+export type {
+  CloudAuditEventListServiceRequest,
+  CloudAuditServiceOptions,
+} from './services/audit-service.js';
 export { CloudAddressPoolService } from './services/address-pool-service.js';
 export type {
   CloudAddressPoolImportServiceRequest,

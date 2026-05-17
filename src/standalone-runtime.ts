@@ -1,5 +1,6 @@
 import {
   CloudAddressPoolService,
+  CloudAuditService,
   CloudApiKeyAuthenticator,
   CloudApiKeyService,
   CloudHostedConfigService,
@@ -157,6 +158,7 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions & { ba
       addressPool: new CloudAddressPoolService({ authenticator, entitlementProvider, addressPool, usageMeter, auditTrail, billingLimitEnforcer }),
       webhooks: new CloudWebhookService({ authenticator, entitlementProvider, webhooks, signer: new StaticCloudWebhookSigner(options.webhookSignature ?? process.env.PAYIN_WEBHOOK_TEST_SIGNATURE ?? 'runtime-sandbox-signature'), usageMeter, auditTrail, billingLimitEnforcer }),
       apiKeys: new CloudApiKeyService({ authenticator, entitlementProvider, apiKeys, usageMeter, auditTrail }),
+      audit: new CloudAuditService({ authenticator, entitlementProvider, auditTrail }),
       configs: new CloudHostedConfigService({ authenticator, entitlementProvider, configs: hostedConfig, auditTrail }),
       readiness: {
         getReadiness: async () => createRuntimeReadinessReport({ tenant, checks: runtimeReadinessChecks({ hostedConfigConfigured: true, webhookCount: (await webhooks.listForTenant(tenant)).length }) }),

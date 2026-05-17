@@ -49,6 +49,11 @@ export function createCloudHonoApp(options: CloudHonoAdapterOptions): CloudHonoA
     app.put('/api/v1/config', async (c) => respond(c, await routes.configs!.updateConfig({ headers: headers(c), body: await jsonBody(c) as never }), legacy, 'config'));
   }
 
+  if (routes.audit) {
+    app.get('/api/v1/audit-events', async (c) => respond(c, await routes.audit!.listEvents({ headers: headers(c), query: query(c), body: undefined }), legacy, 'data'));
+    app.get('/api/v1/audit/events', async (c) => respond(c, await routes.audit!.listEvents({ headers: headers(c), query: query(c), body: undefined }), legacy, 'data'));
+  }
+
   app.post('/api/v1/address-pool/import', async (c) => respond(c, await routes.addressPool.importAddresses({ headers: headers(c), body: await jsonBody(c) as never }), legacy, 'data'));
   app.get('/api/v1/address-pool/summary', async (c) => respond(c, await routes.addressPool.getSummary({ headers: headers(c), body: undefined }), legacy, 'data'));
   app.get('/api/v1/address-pool/addresses', async (c) => respond(c, await routes.addressPool.listAddresses({ headers: headers(c), body: undefined, query: query(c) }), legacy, 'data'));

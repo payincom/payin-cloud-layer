@@ -207,8 +207,24 @@ export class SqlCloudAuditTrail implements CloudAuditTrail {
     );
   }
 
-  async list(_query: CloudAuditTrailQuery = {}): Promise<CloudAuditTrailEvent[]> {
-    throw new Error('SqlCloudAuditTrail.list is adapter-pending');
+  async list(query: CloudAuditTrailQuery = {}): Promise<CloudAuditTrailEvent[]> {
+    const clauses: string[] = [];
+    const values: unknown[] = [];
+    let next = 1;
+    if (query.tenantId) { clauses.push(`organization_id = $${next++}`); values.push(query.tenantId); }
+    if (query.action) { clauses.push(`action = $${next++}`); values.push(query.action); }
+    if (query.actorId) { clauses.push(`actor_id = $${next++}`); values.push(query.actorId); }
+    const where = clauses.length ? ` WHERE ${clauses.join(' AND ')}` : '';
+    const result = await this.db.query<Record<string, unknown>>(`SELECT * FROM ${this.tableName}${where} ORDER BY occurred_at DESC, id DESC`, values);
+    return result.rows.map((row) => ({
+      id: row.id ? String(row.id) : undefined,
+      tenant: normalizeCloudTenantContext({ organizationId: String(row.organization_id) }),
+      action: String(row.action) as CloudAuditTrailEvent['action'],
+      actor: { type: String(row.actor_type) as CloudAuditTrailEvent['actor']['type'], id: String(row.actor_id) },
+      subjectId: row.subject_id ? String(row.subject_id) : undefined,
+      occurredAt: new Date(String(row.occurred_at)),
+      metadata: row.metadata as Record<string, unknown> | undefined,
+    }));
   }
 }
 

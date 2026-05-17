@@ -1,4 +1,5 @@
 import type { CloudApiKeyService } from '../services/api-key-service.js';
+import type { CloudAuditService } from '../services/audit-service.js';
 import type { CloudAddressPoolService } from '../services/address-pool-service.js';
 import type { CloudHostedConfigService } from '../services/hosted-config-service.js';
 import type { CloudOrganizationService } from '../services/organization-service.js';
@@ -7,6 +8,7 @@ import type { CloudPaymentLinkService } from '../services/payment-link-service.j
 import type { CloudWebhookService } from '../services/webhook-service.js';
 import type { CloudRuntimeReadinessService } from './runtime-readiness-routes.js';
 import { createCloudApiKeyRouteHandlers } from './api-key-routes.js';
+import { createCloudAuditRouteHandlers } from './audit-routes.js';
 import { createCloudAddressPoolRouteHandlers } from './address-pool-routes.js';
 import { createCloudHostedConfigRouteHandlers } from './hosted-config-routes.js';
 import { createCloudOrderRouteHandlers } from './order-routes.js';
@@ -18,6 +20,7 @@ import { createCloudWebhookRouteHandlers } from './webhook-routes.js';
 export interface CloudRouteHandlersOptions {
   services: {
     apiKeys?: Pick<CloudApiKeyService, 'createApiKey' | 'listApiKeys' | 'revokeApiKey'>;
+    audit?: Pick<CloudAuditService, 'listEvents'>;
     addressPool: Pick<CloudAddressPoolService, 'importAddresses' | 'getSummary' | 'listAddresses'>;
     configs?: Pick<CloudHostedConfigService, 'getConfig' | 'updateConfig'>;
     organizations?: Pick<CloudOrganizationService, 'getCurrentOrganization' | 'updateOrganization' | 'listMembers' | 'addMember' | 'updateMember'>;
@@ -31,6 +34,7 @@ export interface CloudRouteHandlersOptions {
 export function createCloudRouteHandlers(options: CloudRouteHandlersOptions) {
   return {
     ...(options.services.apiKeys ? { apiKeys: createCloudApiKeyRouteHandlers({ apiKeys: options.services.apiKeys }) } : {}),
+    ...(options.services.audit ? { audit: createCloudAuditRouteHandlers({ audit: options.services.audit }) } : {}),
     ...(options.services.configs ? { configs: createCloudHostedConfigRouteHandlers({ configs: options.services.configs }) } : {}),
     ...(options.services.organizations ? { organizations: createCloudOrganizationRouteHandlers({ organizations: options.services.organizations }) } : {}),
     addressPool: createCloudAddressPoolRouteHandlers({ addressPool: options.services.addressPool }),

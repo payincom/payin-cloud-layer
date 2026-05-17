@@ -82,6 +82,8 @@ const deleteWebhookResponse = await fetch(`${cleanBase}/api/v1/webhooks/endpoint
 expect(deleteWebhookResponse.status === 204, 'webhook endpoint deleted', { status: deleteWebhookResponse.status, body: await deleteWebhookResponse.text() });
 const childApiKey = await request('/api/v1/organizations/org-cloud-layer-sandbox/api-keys', { method: 'POST', headers: authHeaders, body: JSON.stringify({ name: `Deployed E2E ${suffix}`, role: 'member', capabilities: ['orders:create'] }) });
 expect(/^pk_live_/.test(childApiKey?.apiKey ?? ''), 'child api key returned', childApiKey);
+const auditEvents = await request('/api/v1/audit-events?action=api-keys:create', { headers: authHeaders });
+expect(auditEvents?.data?.some((event) => event.subjectId === childApiKey?.metadata?.id || event.subjectId === childApiKey?.apiKey?.id), 'audit events include child api key creation', auditEvents);
 const smoke = await request('/api/v1/smoke', { method: 'POST', headers: authHeaders });
 expect(smoke?.data?.checks?.some((check) => check.name === 'runtime-smoke'), 'smoke contains runtime-smoke', smoke);
 const unauth = await fetch(`${cleanBase}/api/v1/orders`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
