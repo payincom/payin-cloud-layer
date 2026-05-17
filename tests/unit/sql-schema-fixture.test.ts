@@ -16,6 +16,7 @@ describe('Cloud SQL schema fixture contract', () => {
       'address_pool',
       'webhook_endpoints',
       'hosted_configs',
+      'subscriptions',
       'notification_deliveries',
       'usage_events',
       'audit_events',
@@ -28,6 +29,7 @@ describe('Cloud SQL schema fixture contract', () => {
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS organizations');
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS orders');
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS webhook_endpoints');
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS subscriptions');
     expect(() => assertSafeSchemaSql(sql)).not.toThrow();
   });
 

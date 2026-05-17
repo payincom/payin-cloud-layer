@@ -25,6 +25,10 @@ export interface CloudSubscriptionRepository {
   getForTenant(tenant: CloudTenantContext): Promise<CloudSubscription | null> | CloudSubscription | null;
 }
 
+export interface CloudSubscriptionManagementRepository extends CloudSubscriptionRepository {
+  upsert(subscription: CloudSubscriptionInput): Promise<CloudSubscription> | CloudSubscription;
+}
+
 export class CloudSubscriptionError extends Error {
   readonly code = 'CLOUD_SUBSCRIPTION_INVALID';
 
@@ -58,7 +62,7 @@ export function isSubscriptionActive(subscription: Pick<CloudSubscription, 'stat
   return subscription.status === 'active' || subscription.status === 'trialing';
 }
 
-export class InMemoryCloudSubscriptionRepository implements CloudSubscriptionRepository {
+export class InMemoryCloudSubscriptionRepository implements CloudSubscriptionManagementRepository {
   private readonly records = new Map<string, CloudSubscription>();
 
   constructor(records: CloudSubscriptionInput[] = []) {
@@ -71,6 +75,12 @@ export class InMemoryCloudSubscriptionRepository implements CloudSubscriptionRep
   getForTenant(tenant: CloudTenantContext): CloudSubscription | null {
     const normalized = normalizeCloudTenantContext(tenant);
     return this.records.get(normalized.organizationId) ?? null;
+  }
+
+  upsert(subscription: CloudSubscriptionInput): CloudSubscription {
+    const normalized = normalizeCloudSubscription(subscription);
+    this.records.set(normalized.tenant.organizationId, normalized);
+    return normalized;
   }
 }
 

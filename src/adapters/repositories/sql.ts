@@ -5,6 +5,7 @@ import { normalizeCloudWebhookEndpoint, type CloudWebhookEndpoint, type CloudWeb
 import { normalizeCloudTenantContext, type CloudTenantContext } from '../../context.js';
 import { normalizeHostedRuntimeConfig, type HostedConfigRepository, type HostedRuntimeConfig, type HostedRuntimeConfigInput } from '../../hosted-config.js';
 import { createCloudWebhookDeliveryRecord, type CloudNotificationDeliveryRepository, type CloudWebhookDeliveryRecord } from '../../notification-delivery.js';
+import { normalizeCloudSubscription, type CloudSubscription, type CloudSubscriptionInput, type CloudSubscriptionManagementRepository } from '../../subscription.js';
 import { createUsageDedupeKey, normalizeUsageEvent, type RequiredUsageEvent, type UsageMeter, type UsageQuery } from '../../usage-meter.js';
 import type { CloudUsageEvent } from '../../hooks.js';
 import type { CloudAuditTrail, CloudAuditTrailEvent, CloudAuditTrailQuery } from '../../audit-risk.js';
@@ -50,6 +51,45 @@ export function rejectUnsafeSqlIdentifier(identifier: string): string {
     throw new Error('Unsafe SQL identifier');
   }
   return identifier;
+}
+
+export class SqlCloudSubscriptionRepository implements CloudSubscriptionManagementRepository {
+  private readonly tableName: string;
+
+  constructor(private readonly db: SqlQueryExecutor, options: { tableName?: string } = {}) {
+    this.tableName = rejectUnsafeSqlIdentifier(options.tableName ?? 'subscriptions');
+  }
+
+  async getForTenant(tenant: CloudTenantContext): Promise<CloudSubscription | null> {
+    const result = await this.db.query<Record<string, unknown>>(
+      `SELECT * FROM ${this.tableName} WHERE organization_id = $1 LIMIT 1`,
+      [tenant.organizationId]
+    );
+    return result.rows[0] ? mapSubscriptionRow(result.rows[0]) : null;
+  }
+
+  async upsert(subscription: CloudSubscriptionInput): Promise<CloudSubscription> {
+    const normalized = normalizeCloudSubscription(subscription);
+    const updatedAt = new Date();
+    const result = await this.db.query<Record<string, unknown>>(
+      `INSERT INTO ${this.tableName} (organization_id, status, plan, billing_customer_ref, current_period_start, current_period_end, limits, metadata, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (organization_id) DO UPDATE SET status = EXCLUDED.status, plan = EXCLUDED.plan, billing_customer_ref = EXCLUDED.billing_customer_ref, current_period_start = EXCLUDED.current_period_start, current_period_end = EXCLUDED.current_period_end, limits = EXCLUDED.limits, metadata = EXCLUDED.metadata, updated_at = EXCLUDED.updated_at RETURNING *`,
+      [normalized.tenant.organizationId, normalized.status, normalized.plan, normalized.billingCustomerRef, normalized.currentPeriodStart, normalized.currentPeriodEnd, subscription.limits, normalized.metadata, updatedAt]
+    );
+    return mapSubscriptionRow(result.rows[0]);
+  }
+}
+
+function mapSubscriptionRow(row: Record<string, unknown>): CloudSubscription {
+  return normalizeCloudSubscription({
+    tenant: { organizationId: String(row.organization_id) },
+    status: String(row.status) as CloudSubscription['status'],
+    plan: String(row.plan) as CloudSubscription['plan'],
+    billingCustomerRef: row.billing_customer_ref ? String(row.billing_customer_ref) : undefined,
+    currentPeriodStart: row.current_period_start ? new Date(String(row.current_period_start)) : undefined,
+    currentPeriodEnd: row.current_period_end ? new Date(String(row.current_period_end)) : undefined,
+    limits: row.limits as CloudSubscriptionInput['limits'],
+    metadata: row.metadata as Record<string, unknown> | undefined,
+  });
 }
 
 export class SqlCloudNotificationDeliveryRepository implements CloudNotificationDeliveryRepository {

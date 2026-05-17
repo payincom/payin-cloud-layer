@@ -8,6 +8,7 @@ import {
   SqlCloudOrderRepository,
   SqlCloudOrganizationRepository,
   SqlCloudPaymentLinkRepository,
+  SqlCloudSubscriptionRepository,
   SqlCloudTenantResolver,
   SqlCloudUsageMeter,
   SqlHostedConfigRepository,
@@ -86,6 +87,29 @@ describe.runIf(enabled)('disposable database integration', () => {
     });
     await expect(configs.getTenantConfig({ organizationId: 'org-integration' })).resolves.toMatchObject({
       secretRefs: { webhookSigningSecretRef: 'secret://integration/hosted-config' },
+      metadata: { source: 'disposable-db' },
+    });
+
+    const subscriptions = new SqlCloudSubscriptionRepository(executor);
+    await expect(subscriptions.upsert({
+      tenant: { organizationId: 'org-integration' },
+      status: 'active',
+      plan: 'pro',
+      billingCustomerRef: 'stripe://cus_integration',
+      currentPeriodStart: new Date('2026-05-01T00:00:00.000Z'),
+      currentPeriodEnd: new Date('2026-06-01T00:00:00.000Z'),
+      limits: { monthlyOrderLimit: 1000, apiKeyLimit: 10 },
+      metadata: { source: 'disposable-db' },
+    })).resolves.toMatchObject({
+      tenant: { organizationId: 'org-integration' },
+      status: 'active',
+      plan: 'pro',
+      billingCustomerRef: 'stripe://cus_integration',
+      limits: { monthlyOrderLimit: 1000, apiKeyLimit: 10 },
+    });
+    await expect(subscriptions.getForTenant({ organizationId: 'org-integration' })).resolves.toMatchObject({
+      status: 'active',
+      plan: 'pro',
       metadata: { source: 'disposable-db' },
     });
 

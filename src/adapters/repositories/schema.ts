@@ -9,6 +9,7 @@ export const CLOUD_LAYER_MINIMAL_SCHEMA_TABLES = [
   'address_pool',
   'webhook_endpoints',
   'hosted_configs',
+  'subscriptions',
   'notification_deliveries',
   'usage_events',
   'audit_events',
@@ -122,6 +123,19 @@ CREATE TABLE IF NOT EXISTS hosted_configs (
   enabled_chains TEXT[] NOT NULL DEFAULT '{}',
   enabled_tokens TEXT[] NOT NULL DEFAULT '{}',
   secret_refs JSONB,
+  limits JSONB,
+  metadata JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+  organization_id TEXT PRIMARY KEY REFERENCES organizations(id),
+  status TEXT NOT NULL,
+  plan TEXT NOT NULL,
+  billing_customer_ref TEXT,
+  current_period_start TIMESTAMPTZ,
+  current_period_end TIMESTAMPTZ,
   limits JSONB,
   metadata JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW(),
