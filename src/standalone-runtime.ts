@@ -10,6 +10,7 @@ import {
   InMemoryCloudAddressPoolRepository,
   InMemoryCloudApiKeyRepository,
   InMemoryCloudAuditTrail,
+  InMemoryCloudNotificationDeliveryRepository,
   InMemoryCloudOrderRepository,
   InMemoryCloudPaymentLinkRepository,
   InMemoryCloudSubscriptionRepository,
@@ -23,6 +24,7 @@ import {
   SqlCloudAddressPoolRepository,
   SqlCloudApiKeyRepository,
   SqlCloudAuditTrail,
+  SqlCloudNotificationDeliveryRepository,
   SqlCloudOrderRepository,
   SqlCloudPaymentLinkRepository,
   SqlCloudSubscriptionRepository,
@@ -44,6 +46,7 @@ import {
   type CloudTenantContext,
   type CloudWebhookEndpoint,
   type HostedRuntimeConfigInput,
+  type CloudNotificationDeliveryRepository,
   type NormalizedCloudOrder,
   type NormalizedCloudPaymentLink,
   type RequiredUsageEvent,
@@ -86,6 +89,7 @@ interface RuntimeBackingStores {
   paymentLinks: RepositoryBackedPaymentLinkPort;
   addressPool: RepositoryBackedAddressPoolPort;
   webhooks: MutableCloudWebhookEndpointRepository;
+  deliveries: CloudNotificationDeliveryRepository;
   persistence: 'memory' | 'postgres';
 }
 
@@ -149,6 +153,7 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions & { ba
   const paymentLinks = options.backingStores?.paymentLinks ?? new RepositoryBackedPaymentLinkPort(new InMemoryCloudPaymentLinkRepository());
   const addressPool = options.backingStores?.addressPool ?? new RepositoryBackedAddressPoolPort(new InMemoryCloudAddressPoolRepository());
   const webhooks = options.backingStores?.webhooks ?? new InMemoryCloudWebhookRepository();
+  const deliveries = options.backingStores?.deliveries ?? new InMemoryCloudNotificationDeliveryRepository();
 
   const app = createCloudHonoApp({
     legacyEnvelopes: true,
@@ -156,7 +161,7 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions & { ba
       orders: new CloudOrderService({ authenticator, entitlementProvider, hostedConfig, orders, usageMeter, auditTrail, billingLimitEnforcer }),
       paymentLinks: new CloudPaymentLinkService({ authenticator, entitlementProvider, hostedConfig, paymentLinks, usageMeter, auditTrail, billingLimitEnforcer }),
       addressPool: new CloudAddressPoolService({ authenticator, entitlementProvider, addressPool, usageMeter, auditTrail, billingLimitEnforcer }),
-      webhooks: new CloudWebhookService({ authenticator, entitlementProvider, webhooks, signer: new StaticCloudWebhookSigner(options.webhookSignature ?? process.env.PAYIN_WEBHOOK_TEST_SIGNATURE ?? 'runtime-sandbox-signature'), usageMeter, auditTrail, billingLimitEnforcer }),
+      webhooks: new CloudWebhookService({ authenticator, entitlementProvider, webhooks, signer: new StaticCloudWebhookSigner(options.webhookSignature ?? process.env.PAYIN_WEBHOOK_TEST_SIGNATURE ?? 'runtime-sandbox-signature'), deliveries, usageMeter, auditTrail, billingLimitEnforcer }),
       apiKeys: new CloudApiKeyService({ authenticator, entitlementProvider, apiKeys, usageMeter, auditTrail }),
       audit: new CloudAuditService({ authenticator, entitlementProvider, auditTrail }),
       configs: new CloudHostedConfigService({ authenticator, entitlementProvider, configs: hostedConfig, auditTrail }),
@@ -255,6 +260,7 @@ async function createPostgresBackingStores(options: PayInCloudRuntimeOptions, da
     paymentLinks: new RepositoryBackedPaymentLinkPort(new SqlCloudPaymentLinkRepository(db)),
     addressPool: new RepositoryBackedAddressPoolPort(new SqlCloudAddressPoolRepository(db)),
     webhooks: new SqlCloudWebhookRepository(db),
+    deliveries: new SqlCloudNotificationDeliveryRepository(db),
     persistence: 'postgres',
   };
 }

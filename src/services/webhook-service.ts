@@ -3,6 +3,12 @@ import { CloudApiKeyAuthenticator, type CloudApiKeyScope } from '../api-key.js';
 import { type CloudCapability, type EntitlementProvider } from '../entitlements.js';
 import type { UsageMeter } from '../usage-meter.js';
 import {
+  createCloudWebhookDeliveryRecord,
+  type CloudNotificationDeliveryRepository,
+  type CloudWebhookDeliveryRecord,
+  type CloudWebhookDeliveryStatus,
+} from '../notification-delivery.js';
+import {
   createCloudWebhookDelivery,
   type CloudWebhookDelivery,
   type CloudWebhookEndpoint,
@@ -17,6 +23,7 @@ export interface CloudWebhookServiceOptions {
   entitlementProvider: EntitlementProvider;
   webhooks: MutableCloudWebhookEndpointRepository;
   signer: CloudWebhookSigner;
+  deliveries?: CloudNotificationDeliveryRepository;
   usageMeter: UsageMeter;
   auditTrail: CloudAuditTrail;
   billingLimitEnforcer?: SubscriptionBillingLimitEnforcer;
@@ -47,6 +54,18 @@ export interface CloudWebhookEndpointListServiceRequest {
 export interface CloudWebhookEndpointDeleteServiceRequest {
   apiKey: string;
   endpointId: string;
+  now?: Date;
+}
+
+export interface CloudWebhookDeliveryListServiceRequest {
+  apiKey: string;
+  endpointId?: string;
+  status?: CloudWebhookDeliveryStatus;
+}
+
+export interface CloudWebhookDeliveryReplayServiceRequest {
+  apiKey: string;
+  deliveryId: string;
   now?: Date;
 }
 
@@ -110,6 +129,20 @@ export class CloudWebhookService {
       data: { test: true },
     }, this.options.signer);
 
+    await this.options.deliveries?.enqueue(createCloudWebhookDeliveryRecord({
+      id: `delivery_${delivery.event.id}`,
+      tenant: scope.tenant,
+      endpointId: delivery.endpointId,
+      eventId: delivery.event.id,
+      eventType: delivery.event.type,
+      url: delivery.url,
+      headers: delivery.headers,
+      body: delivery.body,
+      status: 'queued',
+      createdAt: occurredAt,
+      updatedAt: occurredAt,
+    }));
+
     await this.options.usageMeter.recordUsage({
       tenant: scope.tenant,
       type: 'webhook.tested',
@@ -146,6 +179,31 @@ export class CloudWebhookService {
       metadata: { resource: 'webhook_endpoint', deleted: true },
     }));
     return { id: request.endpointId, deleted: true };
+  }
+
+  async listDeliveries(request: CloudWebhookDeliveryListServiceRequest): Promise<CloudWebhookDeliveryRecord[]> {
+    const scope = await this.authenticateAndAuthorize(request.apiKey, 'webhooks:read');
+    const deliveries = await this.options.deliveries?.listForTenant(scope.tenant) ?? [];
+    return deliveries.filter((delivery) =>
+      (!request.endpointId || delivery.endpointId === request.endpointId)
+      && (!request.status || delivery.status === request.status)
+    );
+  }
+
+  async replayDelivery(request: CloudWebhookDeliveryReplayServiceRequest): Promise<CloudWebhookDeliveryRecord> {
+    const scope = await this.authenticateAndAuthorize(request.apiKey, 'webhooks:test');
+    if (!this.options.deliveries) throw new Error('Webhook delivery repository is not configured');
+    const deliveries = await this.options.deliveries.listForTenant(scope.tenant);
+    const existing = deliveries.find((delivery) => delivery.id === request.deliveryId);
+    if (!existing) throw new Error(`Webhook delivery not found: ${request.deliveryId}`);
+    const now = request.now ?? new Date();
+    return this.options.deliveries.replace({
+      ...existing,
+      status: 'queued',
+      errorMessage: undefined,
+      nextAttemptAt: undefined,
+      updatedAt: now,
+    });
   }
 
   private async authenticateAndAuthorize(apiKey: string, capability: Extract<CloudCapability, 'config:update' | 'webhooks:test' | 'webhooks:read'>): Promise<CloudApiKeyScope> {

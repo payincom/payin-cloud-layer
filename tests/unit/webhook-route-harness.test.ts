@@ -13,7 +13,9 @@ describe('Cloud webhook route harness', () => {
         async createTestDelivery() { throw new Error('unused'); },
         async listEndpoints() { throw new Error('unused'); },
         async deleteEndpoint() { throw new Error('unused'); },
-      } as Pick<CloudWebhookService, 'upsertEndpoint' | 'createTestDelivery' | 'listEndpoints' | 'deleteEndpoint'>,
+        async listDeliveries() { throw new Error('unused'); },
+        async replayDelivery() { throw new Error('unused'); },
+      } as Pick<CloudWebhookService, 'upsertEndpoint' | 'createTestDelivery' | 'listEndpoints' | 'deleteEndpoint' | 'listDeliveries' | 'replayDelivery'>,
     });
 
     await expect(handlers.upsertEndpoint({
@@ -32,11 +34,13 @@ describe('Cloud webhook route harness', () => {
         async upsertEndpoint() { throw new Error('unused'); },
         async listEndpoints() { throw new Error('unused'); },
         async deleteEndpoint() { throw new Error('unused'); },
+        async listDeliveries() { throw new Error('unused'); },
+        async replayDelivery() { throw new Error('unused'); },
         async createTestDelivery(input: unknown) {
           calls.push(input);
           return { endpointId: 'wh-route', tenant: { organizationId: 'org-route', tenantId: 'org-route' }, url: 'https://merchant.example/webhooks', headers: { 'payin-signature': 'sig' }, body: '{}', event: { id: 'evt-route', tenant: { organizationId: 'org-route', tenantId: 'org-route' }, type: 'webhook.tested', occurredAt: new Date('2026-05-16T23:40:00.000Z'), data: {} } };
         },
-      } as Pick<CloudWebhookService, 'upsertEndpoint' | 'createTestDelivery' | 'listEndpoints' | 'deleteEndpoint'>,
+      } as Pick<CloudWebhookService, 'upsertEndpoint' | 'createTestDelivery' | 'listEndpoints' | 'deleteEndpoint' | 'listDeliveries' | 'replayDelivery'>,
     });
 
     await expect(handlers.createTestDelivery({
@@ -64,6 +68,27 @@ describe('Cloud webhook route harness', () => {
     expect(calls).toEqual([
       ['list', { apiKey: 'pk_live_route' }],
       ['delete', { apiKey: 'pk_live_route', endpointId: 'wh-route' }],
+    ]);
+  });
+
+  it('maps delivery list and replay operations to service', async () => {
+    const calls: unknown[] = [];
+    const handlers = createCloudWebhookRouteHandlers({
+      webhooks: {
+        async upsertEndpoint() { throw new Error('unused'); },
+        async createTestDelivery() { throw new Error('unused'); },
+        async listEndpoints() { throw new Error('unused'); },
+        async deleteEndpoint() { throw new Error('unused'); },
+        async listDeliveries(input: unknown) { calls.push(['listDeliveries', input]); return [{ id: 'delivery-route', endpointId: 'wh-route', status: 'queued' }]; },
+        async replayDelivery(input: unknown) { calls.push(['replayDelivery', input]); return { id: 'delivery-route', status: 'queued' }; },
+      } as never,
+    });
+
+    await expect(handlers.listDeliveries({ headers: { authorization: 'Bearer pk_live_route' }, query: { endpointId: 'wh-route', status: 'queued' }, body: undefined })).resolves.toEqual({ status: 200, body: { data: [{ id: 'delivery-route', endpointId: 'wh-route', status: 'queued' }] } });
+    await expect(handlers.replayDelivery({ headers: { authorization: 'Bearer pk_live_route' }, params: { deliveryId: 'delivery-route' }, body: undefined })).resolves.toEqual({ status: 200, body: { data: { id: 'delivery-route', status: 'queued' } } });
+    expect(calls).toEqual([
+      ['listDeliveries', { apiKey: 'pk_live_route', endpointId: 'wh-route', status: 'queued' }],
+      ['replayDelivery', { apiKey: 'pk_live_route', deliveryId: 'delivery-route' }],
     ]);
   });
 });

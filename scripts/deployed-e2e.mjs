@@ -78,6 +78,11 @@ const webhookEndpoints = await request('/api/v1/webhooks/endpoints', { headers: 
 expect(webhookEndpoints?.endpoints?.some((candidate) => candidate.id === endpointId), 'webhook endpoint listed', webhookEndpoints);
 const webhookTest = await request(`/api/v1/webhooks/endpoints/${endpointId}/test`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ eventId: `evt-${suffix}` }) });
 expect(webhookTest?.data?.endpointId === endpointId, 'webhook tested', webhookTest);
+const webhookDeliveries = await request(`/api/v1/webhooks/deliveries?endpointId=${endpointId}`, { headers: authHeaders });
+const deliveryId = webhookDeliveries?.data?.find((delivery) => delivery.eventId === `evt-${suffix}`)?.id;
+expect(deliveryId, 'webhook delivery listed', webhookDeliveries);
+const replayedDelivery = await request(`/api/v1/webhooks/deliveries/${deliveryId}/replay`, { method: 'POST', headers: authHeaders });
+expect(replayedDelivery?.data?.id === deliveryId && replayedDelivery?.data?.status === 'queued', 'webhook delivery replayed', replayedDelivery);
 const deleteWebhookResponse = await fetch(`${cleanBase}/api/v1/webhooks/endpoints/${endpointId}`, { method: 'DELETE', headers: authHeaders });
 expect(deleteWebhookResponse.status === 204, 'webhook endpoint deleted', { status: deleteWebhookResponse.status, body: await deleteWebhookResponse.text() });
 const childApiKey = await request('/api/v1/organizations/org-cloud-layer-sandbox/api-keys', { method: 'POST', headers: authHeaders, body: JSON.stringify({ name: `Deployed E2E ${suffix}`, role: 'member', capabilities: ['orders:create'] }) });

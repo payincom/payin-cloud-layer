@@ -55,6 +55,7 @@ export type {
 } from './routes/payment-link-routes.js';
 export { createCloudWebhookRouteHandlers } from './routes/webhook-routes.js';
 export type {
+  CloudWebhookDeliveryListRouteQuery,
   CloudWebhookEndpointUpsertRouteBody,
   CloudWebhookRouteHandlersOptions,
   CloudWebhookTestDeliveryRouteBody,
@@ -156,6 +157,8 @@ export type {
   CloudWebhookEndpointDeleteServiceRequest,
   CloudWebhookEndpointListServiceRequest,
   CloudWebhookEndpointUpsertServiceRequest,
+  CloudWebhookDeliveryListServiceRequest,
+  CloudWebhookDeliveryReplayServiceRequest,
   CloudWebhookServiceOptions,
   CloudWebhookTestDeliveryServiceRequest,
 } from './services/webhook-service.js';
