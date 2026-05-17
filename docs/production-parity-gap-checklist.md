@@ -14,7 +14,10 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 - Public payment-link checkout API now supports:
   - `GET /api/payment-links/:slug`
   - `POST /api/payment-links/:slug/orders`
-- Online E2E validates checkout JSON, checkout HTML, order status HTML, public checkout order creation, merchant APIs, webhook tests, smoke, and auth failure.
+- Public deposit and preview page shells now support:
+  - `GET /pay/deposit/:address`
+  - `GET /checkout/preview/:id?token=...&viewport=...`
+- Online E2E validates checkout JSON, checkout HTML, checkout preview HTML, order status HTML, deposit HTML, public checkout order creation, merchant APIs, webhook tests, smoke, and auth failure.
 
 ## Remaining gaps before full production replacement
 
@@ -25,8 +28,8 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 - [x] Public payment-link detail API.
 - [x] Public payment-link order creation API.
 - [ ] Full old checkout SSR/React bundle parity, including exact UI assets, QR rendering, wallet UX, timers, disabled/draft/sold-out states, and redirect UX.
-- [ ] `GET /pay/deposit/:address` deposit payment page.
-- [ ] `GET /checkout/preview/:id?token=...&viewport=...` preview flow.
+- [x] Minimal `GET /pay/deposit/:address` deposit payment page shell.
+- [x] Minimal `GET /checkout/preview/:id?token=...&viewport=...` preview flow.
 - [ ] Legacy field aliases such as `redirect_url` in addition to `redirectUrl` where old clients depend on snake_case.
 
 ### P0 — Deposits/transfers/chains/tokens
@@ -34,7 +37,8 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 - [ ] Chain and token discovery routes.
 - [ ] Deposit reference APIs.
 - [ ] Transfer detection/status APIs.
-- [ ] Address-bound deposit page and status polling.
+- [x] Minimal address-bound deposit page shell.
+- [ ] Deposit status polling JSON API beyond the HTML shell.
 - [ ] Real chain monitor integration rather than in-memory status only.
 
 ### P1 — Management API surface
@@ -63,5 +67,5 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 
 - Railway sandbox: `payincloudsandbox` / `cloud-runtime`
 - URL: `https://cloud-runtime-production-13e5.up.railway.app`
-- Latest public checkout/order API E2E passed with slug `deployed-e2e-mp9hlkzl`.
-- Latest commit implementing public payment-link order API: `f9e4cfc`.
+- Latest public checkout/order/deposit/preview E2E passed with slug `deployed-e2e-mp9i4z0h`.
+- Latest commit implementing deposit and preview pages: `7c6b908`.
