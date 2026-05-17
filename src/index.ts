@@ -86,6 +86,19 @@ export {
 } from './integration-safety.js';
 
 export {
+  InMemoryCloudNotificationDeliveryRepository,
+  createCloudWebhookDeliveryRecord,
+  markCloudWebhookDeliveryFailed,
+  markCloudWebhookDeliverySucceeded,
+} from './notification-delivery.js';
+export type {
+  CloudNotificationDeliveryRepository,
+  CloudWebhookDeliveryRecord,
+  CloudWebhookDeliveryRecordInput,
+  CloudWebhookDeliveryStatus,
+} from './notification-delivery.js';
+
+export {
   CloudLayerApplication,
   CloudLayerPortError,
   createCloudLayerPorts,
