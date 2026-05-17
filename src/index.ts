@@ -40,10 +40,11 @@ export type {
 export { createCloudHostedConfigRouteHandlers } from './routes/hosted-config-routes.js';
 export type { CloudHostedConfigRouteHandlersOptions, CloudHostedConfigUpdateRouteBody } from './routes/hosted-config-routes.js';
 export { createCloudOrderRouteHandlers } from './routes/order-routes.js';
-export type { CloudOrderCreateRouteBody, CloudOrderRouteHandlersOptions } from './routes/order-routes.js';
+export type { CloudOrderCreateRouteBody, CloudOrderListRouteQuery, CloudOrderRouteHandlersOptions, CloudOrderRouteWithParams } from './routes/order-routes.js';
 export { createCloudPaymentLinkRouteHandlers } from './routes/payment-link-routes.js';
 export type {
   CloudPaymentLinkCreateRouteBody,
+  CloudPaymentLinkListRouteQuery,
   CloudPaymentLinkPublishRouteBody,
   CloudPaymentLinkRouteHandlersOptions,
   CloudRouteWithParams,
@@ -105,10 +106,12 @@ export type {
   CloudOrganizationUpdateServiceRequest,
 } from './services/organization-service.js';
 export { CloudOrderService } from './services/order-service.js';
-export type { CloudOrderCreateServiceRequest, CloudOrderServiceOptions } from './services/order-service.js';
+export type { CloudOrderCreateServiceRequest, CloudOrderGetServiceRequest, CloudOrderListServiceRequest, CloudOrderServiceOptions } from './services/order-service.js';
 export { CloudPaymentLinkService } from './services/payment-link-service.js';
 export type {
   CloudPaymentLinkCreateServiceRequest,
+  CloudPaymentLinkGetServiceRequest,
+  CloudPaymentLinkListServiceRequest,
   CloudPaymentLinkPublishServiceRequest,
   CloudPaymentLinkServiceOptions,
 } from './services/payment-link-service.js';

@@ -22,6 +22,16 @@ export interface CloudOrderCreateServiceRequest extends Omit<CloudOrderDraftInpu
   now?: Date;
 }
 
+export interface CloudOrderGetServiceRequest {
+  apiKey: string;
+  orderId: string;
+}
+
+export interface CloudOrderListServiceRequest {
+  apiKey: string;
+  status?: string;
+}
+
 export class CloudOrderService {
   constructor(private readonly options: CloudOrderServiceOptions) {}
 
@@ -70,6 +80,18 @@ export class CloudOrderService {
     }));
 
     return order;
+  }
+
+  async getOrder(request: CloudOrderGetServiceRequest): Promise<NormalizedCloudOrder> {
+    const scope = await this.authenticateAndAuthorize(request.apiKey, 'orders:read');
+    const order = await this.options.orders.get(request.orderId, scope.tenant) as NormalizedCloudOrder | null;
+    if (!order) throw new Error(`Order not found: ${request.orderId}`);
+    return order;
+  }
+
+  async listOrders(request: CloudOrderListServiceRequest): Promise<NormalizedCloudOrder[]> {
+    const scope = await this.authenticateAndAuthorize(request.apiKey, 'orders:read');
+    return this.options.orders.list(scope.tenant, { status: request.status }) as Promise<NormalizedCloudOrder[]>;
   }
 
   private async authenticateAndAuthorize(apiKey: string, capability: 'orders:create' | 'orders:read'): Promise<CloudApiKeyScope> {

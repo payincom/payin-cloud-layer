@@ -11,7 +11,9 @@ describe('Cloud payment link route harness', () => {
           return { id: 'plink-route-1', status: 'draft', tenant: { organizationId: 'org-route', tenantId: 'org-route' }, title: 'Checkout', amount: '12.00', currency: 'USDC', chainOptions: ['ethereum-sepolia'], inventoryReserved: 0 };
         },
         async publishPaymentLink() { throw new Error('unused'); },
-      } as Pick<CloudPaymentLinkService, 'createPaymentLink' | 'publishPaymentLink'>,
+        async getPaymentLink() { throw new Error('unused'); },
+        async listPaymentLinks() { throw new Error('unused'); },
+      } as unknown as Pick<CloudPaymentLinkService, 'createPaymentLink' | 'publishPaymentLink' | 'getPaymentLink' | 'listPaymentLinks'>,
     });
 
     await expect(handlers.createPaymentLink({
@@ -31,7 +33,9 @@ describe('Cloud payment link route harness', () => {
           calls.push(input);
           return { id: 'plink-route-1', status: 'published', slug: 'checkout', tenant: { organizationId: 'org-route', tenantId: 'org-route' }, title: 'Checkout', amount: '12.00', currency: 'USDC', chainOptions: ['ethereum-sepolia'], inventoryReserved: 0 };
         },
-      } as Pick<CloudPaymentLinkService, 'createPaymentLink' | 'publishPaymentLink'>,
+        async getPaymentLink() { throw new Error('unused'); },
+        async listPaymentLinks() { throw new Error('unused'); },
+      } as unknown as Pick<CloudPaymentLinkService, 'createPaymentLink' | 'publishPaymentLink' | 'getPaymentLink' | 'listPaymentLinks'>,
     });
 
     await expect(handlers.publishPaymentLink({
@@ -41,5 +45,25 @@ describe('Cloud payment link route harness', () => {
     })).resolves.toEqual({ status: 200, body: { data: { id: 'plink-route-1', status: 'published', slug: 'checkout', tenant: { organizationId: 'org-route', tenantId: 'org-route' }, title: 'Checkout', amount: '12.00', currency: 'USDC', chainOptions: ['ethereum-sepolia'], inventoryReserved: 0 } } });
 
     expect(calls).toEqual([{ apiKey: 'pk_live_route', paymentLinkId: 'plink-route-1', slug: 'checkout' }]);
+  });
+
+  it('maps get/list payment link input to read service methods with pagination', async () => {
+    const calls: unknown[] = [];
+    const link = { id: 'plink-route-1', status: 'published', tenant: { organizationId: 'org-route' } };
+    const handlers = createCloudPaymentLinkRouteHandlers({
+      paymentLinks: {
+        async createPaymentLink() { throw new Error('unused'); },
+        async publishPaymentLink() { throw new Error('unused'); },
+        async getPaymentLink(input: unknown) { calls.push(['get', input]); return link; },
+        async listPaymentLinks(input: unknown) { calls.push(['list', input]); return [link]; },
+      } as unknown as Pick<CloudPaymentLinkService, 'createPaymentLink' | 'publishPaymentLink' | 'getPaymentLink' | 'listPaymentLinks'>,
+    });
+
+    await expect(handlers.getPaymentLink({ headers: { authorization: 'Bearer pk_live_route' }, params: { paymentLinkId: 'plink-route-1' }, body: undefined })).resolves.toEqual({ status: 200, body: { data: link } });
+    await expect(handlers.listPaymentLinks({ headers: { authorization: 'Bearer pk_live_route' }, query: { status: 'published', page: 1, limit: 5 }, body: undefined })).resolves.toEqual({ status: 200, body: { data: [link], pagination: { page: 1, limit: 5, total: 1, totalPages: 1 } } });
+    expect(calls).toEqual([
+      ['get', { apiKey: 'pk_live_route', paymentLinkId: 'plink-route-1' }],
+      ['list', { apiKey: 'pk_live_route', status: 'published' }],
+    ]);
   });
 });

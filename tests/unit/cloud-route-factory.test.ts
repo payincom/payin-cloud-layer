@@ -5,10 +5,12 @@ describe('createCloudRouteHandlers', () => {
   it('assembles thin route handlers from service layer', async () => {
     const routes = createCloudRouteHandlers({
       services: {
-        orders: { createOrder: async () => ({ id: 'order-factory' }) },
+        orders: { createOrder: async () => ({ id: 'order-factory' }), getOrder: async () => ({ id: 'order-factory' }), listOrders: async () => [{ id: 'order-factory' }] },
         paymentLinks: {
           createPaymentLink: async () => ({ id: 'plink-factory' }),
           publishPaymentLink: async () => ({ id: 'plink-factory', status: 'published' }),
+          getPaymentLink: async () => ({ id: 'plink-factory' }),
+          listPaymentLinks: async () => [{ id: 'plink-factory' }],
         },
         addressPool: {
           importAddresses: async () => [{ address: '0xabc' }],

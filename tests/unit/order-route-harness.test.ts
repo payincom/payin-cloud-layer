@@ -12,7 +12,9 @@ describe('Cloud order route harness', () => {
         calls.push(input);
         return { id: 'order-route-1', status: 'pending', tenant: { organizationId: 'org-route' } };
       },
-    } as Pick<CloudOrderService, 'createOrder'>;
+      async getOrder() { throw new Error('unused'); },
+      async listOrders() { throw new Error('unused'); },
+    } as unknown as Pick<CloudOrderService, 'createOrder' | 'getOrder' | 'listOrders'>;
     const handlers = createCloudOrderRouteHandlers({ orders: service });
 
     const response = await handlers.createOrder({
@@ -41,7 +43,7 @@ describe('Cloud order route harness', () => {
 
   it('normalizes service errors into route error responses', async () => {
     const handlers = createCloudOrderRouteHandlers({
-      orders: { createOrder: async () => { throw new Error('Tenant is not entitled to capability: orders:create'); } } as Pick<CloudOrderService, 'createOrder'>,
+      orders: { createOrder: async () => { throw new Error('Tenant is not entitled to capability: orders:create'); }, getOrder: async () => { throw new Error('unused'); }, listOrders: async () => { throw new Error('unused'); } } as unknown as Pick<CloudOrderService, 'createOrder' | 'getOrder' | 'listOrders'>,
     });
 
     await expect(handlers.createOrder({ headers: { authorization: 'Bearer pk_live_route' }, body: { orderReference: 'route-1', amount: '12.00', currency: 'USDC', chainId: 'ethereum-sepolia' } })).resolves.toEqual({
@@ -52,12 +54,31 @@ describe('Cloud order route harness', () => {
 
   it('requires bearer API key at the route edge', async () => {
     const handlers = createCloudOrderRouteHandlers({
-      orders: { createOrder: async () => ({ id: 'unused', tenant: { organizationId: 'org-route', tenantId: 'org-route' }, orderReference: 'unused', amount: '1', currency: 'USDC', chainId: 'ethereum-sepolia', status: 'pending', confirmedReceived: '0' }) } as Pick<CloudOrderService, 'createOrder'>,
+      orders: { createOrder: async () => ({ id: 'unused', tenant: { organizationId: 'org-route', tenantId: 'org-route' }, orderReference: 'unused', amount: '1', currency: 'USDC', chainId: 'ethereum-sepolia', status: 'pending', confirmedReceived: '0' }), getOrder: async () => { throw new Error('unused'); }, listOrders: async () => [] } as unknown as Pick<CloudOrderService, 'createOrder' | 'getOrder' | 'listOrders'>,
     });
 
     await expect(handlers.createOrder({ headers: {}, body: {} as never })).resolves.toEqual({
       status: 401,
       body: { error: { code: 'CLOUD_ROUTE_UNAUTHORIZED', message: 'Bearer API key is required' } },
     });
+  });
+
+  it('maps get/list order input to read service methods with pagination', async () => {
+    const calls: unknown[] = [];
+    const order = { id: 'order-route-1', status: 'pending', tenant: { organizationId: 'org-route' } };
+    const handlers = createCloudOrderRouteHandlers({
+      orders: {
+        async createOrder() { throw new Error('unused'); },
+        async getOrder(input: unknown) { calls.push(['get', input]); return order; },
+        async listOrders(input: unknown) { calls.push(['list', input]); return [order]; },
+      } as unknown as Pick<CloudOrderService, 'createOrder' | 'getOrder' | 'listOrders'>,
+    });
+
+    await expect(handlers.getOrder({ headers: { authorization: 'Bearer pk_live_route' }, params: { orderId: 'order-route-1' }, body: undefined })).resolves.toEqual({ status: 200, body: { data: order } });
+    await expect(handlers.listOrders({ headers: { authorization: 'Bearer pk_live_route' }, query: { status: 'pending', page: 2, limit: 10 }, body: undefined })).resolves.toEqual({ status: 200, body: { data: [order], pagination: { page: 2, limit: 10, total: 1, totalPages: 1 } } });
+    expect(calls).toEqual([
+      ['get', { apiKey: 'pk_live_route', orderId: 'order-route-1' }],
+      ['list', { apiKey: 'pk_live_route', status: 'pending' }],
+    ]);
   });
 });

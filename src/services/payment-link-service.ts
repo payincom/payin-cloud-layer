@@ -36,6 +36,16 @@ export interface CloudPaymentLinkPublishServiceRequest {
   now?: Date;
 }
 
+export interface CloudPaymentLinkGetServiceRequest {
+  apiKey: string;
+  paymentLinkId: string;
+}
+
+export interface CloudPaymentLinkListServiceRequest {
+  apiKey: string;
+  status?: string;
+}
+
 export class CloudPaymentLinkService {
   constructor(private readonly options: CloudPaymentLinkServiceOptions) {}
 
@@ -111,6 +121,18 @@ export class CloudPaymentLinkService {
     }));
 
     return updated;
+  }
+
+  async getPaymentLink(request: CloudPaymentLinkGetServiceRequest): Promise<NormalizedCloudPaymentLink> {
+    const scope = await this.authenticateAndAuthorize(request.apiKey, 'payment-links:read');
+    const link = await this.options.paymentLinks.get(request.paymentLinkId, scope.tenant) as NormalizedCloudPaymentLink | null;
+    if (!link) throw new Error(`Payment link not found: ${request.paymentLinkId}`);
+    return link;
+  }
+
+  async listPaymentLinks(request: CloudPaymentLinkListServiceRequest): Promise<NormalizedCloudPaymentLink[]> {
+    const scope = await this.authenticateAndAuthorize(request.apiKey, 'payment-links:read');
+    return this.options.paymentLinks.list(scope.tenant, { status: request.status }) as Promise<NormalizedCloudPaymentLink[]>;
   }
 
   private async authenticateAndAuthorize(apiKey: string, capability: 'payment-links:create' | 'payment-links:update' | 'payment-links:read'): Promise<CloudApiKeyScope> {

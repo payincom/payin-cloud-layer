@@ -19,8 +19,8 @@ export interface CloudRouteHandlersOptions {
     addressPool: Pick<CloudAddressPoolService, 'importAddresses' | 'getSummary'>;
     configs?: Pick<CloudHostedConfigService, 'getConfig' | 'updateConfig'>;
     organizations?: Pick<CloudOrganizationService, 'getCurrentOrganization' | 'updateOrganization' | 'listMembers' | 'addMember' | 'updateMember'>;
-    orders: Pick<CloudOrderService, 'createOrder'>;
-    paymentLinks: Pick<CloudPaymentLinkService, 'createPaymentLink' | 'publishPaymentLink'>;
+    orders: Pick<CloudOrderService, 'createOrder' | 'getOrder' | 'listOrders'>;
+    paymentLinks: Pick<CloudPaymentLinkService, 'createPaymentLink' | 'publishPaymentLink' | 'getPaymentLink' | 'listPaymentLinks'>;
     webhooks: Pick<CloudWebhookService, 'upsertEndpoint' | 'createTestDelivery'>;
   };
 }

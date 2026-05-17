@@ -28,8 +28,11 @@ export class InMemoryCloudPaymentLinkRepository implements CloudPaymentLinkRepos
     return record?.tenant.organizationId === tenant.organizationId ? record : null;
   }
 
-  listByTenant(tenant: CloudTenantContext): NormalizedCloudPaymentLink[] {
-    return [...this.records.values()].filter((record) => record.tenant.organizationId === tenant.organizationId);
+  listByTenant(tenant: CloudTenantContext, filters: Record<string, unknown> = {}): NormalizedCloudPaymentLink[] {
+    return [...this.records.values()].filter((record) =>
+      record.tenant.organizationId === tenant.organizationId
+      && (!filters.status || record.status === filters.status)
+    );
   }
 }
 

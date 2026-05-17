@@ -91,6 +91,21 @@ describe('CloudPaymentLinkService', () => {
     await expect(setup.paymentLinks.list(tenant)).resolves.toHaveLength(0);
   });
 
+  it('reads and lists tenant-scoped payment links through read entitlement', async () => {
+    const setup = service();
+    const link = await setup.service.createPaymentLink({ apiKey: 'pk_live_plinks', title: 'Hosted Checkout', amount: '25.50', currency: 'USDC', chainOptions: ['ethereum-sepolia'] });
+
+    await expect(setup.service.getPaymentLink({ apiKey: 'pk_live_plinks', paymentLinkId: link.id })).resolves.toMatchObject({ id: link.id, tenant });
+    await expect(setup.service.listPaymentLinks({ apiKey: 'pk_live_plinks', status: 'draft' })).resolves.toMatchObject([{ id: link.id, status: 'draft' }]);
+  });
+
+  it('rejects missing read entitlement before returning payment links', async () => {
+    const setup = service({ entitlementProvider: new StaticEntitlementProvider(['payment-links:create']) });
+    const link = await setup.service.createPaymentLink({ apiKey: 'pk_live_plinks', title: 'Hosted Checkout', amount: '25.50', currency: 'USDC', chainOptions: ['ethereum-sepolia'] });
+
+    await expect(setup.service.getPaymentLink({ apiKey: 'pk_live_plinks', paymentLinkId: link.id })).rejects.toThrow('Tenant is not entitled to capability: payment-links:read');
+  });
+
   it('enforces subscription payment-link limits before adapter side effects', async () => {
     const usageMeter = new InMemoryUsageMeter({ duplicatePolicy: 'ignore' });
     await usageMeter.recordUsage({ tenant, type: 'payment_link.created', subjectId: 'existing-link', occurredAt: new Date('2026-05-16T00:00:00.000Z') });

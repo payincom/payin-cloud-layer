@@ -101,6 +101,21 @@ describe('CloudOrderService', () => {
     await expect(setup.orders.list(tenant)).resolves.toHaveLength(0);
   });
 
+  it('reads and lists tenant-scoped orders through read entitlement', async () => {
+    const setup = service();
+    const order = await setup.service.createOrder({ apiKey: 'pk_live_orders', orderReference: 'merchant-service-read', amount: '10.00', currency: 'USDC', chainId: 'ethereum-sepolia' });
+
+    await expect(setup.service.getOrder({ apiKey: 'pk_live_orders', orderId: order.id })).resolves.toMatchObject({ id: order.id, tenant });
+    await expect(setup.service.listOrders({ apiKey: 'pk_live_orders', status: 'pending' })).resolves.toMatchObject([{ id: order.id, status: 'pending' }]);
+  });
+
+  it('rejects missing read entitlement before returning orders', async () => {
+    const setup = service({ entitlementProvider: new StaticEntitlementProvider(['orders:create']) });
+    const order = await setup.service.createOrder({ apiKey: 'pk_live_orders', orderReference: 'merchant-service-read-denied', amount: '10.00', currency: 'USDC', chainId: 'ethereum-sepolia' });
+
+    await expect(setup.service.getOrder({ apiKey: 'pk_live_orders', orderId: order.id })).rejects.toThrow('Tenant is not entitled to capability: orders:read');
+  });
+
   it('enforces subscription order limits before adapter side effects', async () => {
     const setup = service();
     const subscriptions = new InMemoryCloudSubscriptionRepository([
