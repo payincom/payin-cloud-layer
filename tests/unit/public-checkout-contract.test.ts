@@ -3,6 +3,7 @@ import {
   createPublicOrderStatusView,
   createPublicPaymentLinkCheckoutView,
   createPublicDepositStatusView,
+  createPublicRuntimeDiscoveryView,
   renderPublicDepositStatusHtml,
   renderPublicOrderStatusHtml,
   renderPublicPaymentLinkCheckoutHtml,
@@ -142,5 +143,12 @@ describe('public checkout contracts', () => {
       paymentUrl: 'https://pay.example/pay/deposit/0x2222222222222222222222222222222222222222',
     });
     expect(renderPublicDepositStatusHtml(deposit)).toContain('id="payin-deposit-status-data"');
+  });
+
+  it('builds public chain and token discovery views', () => {
+    expect(createPublicRuntimeDiscoveryView({ chains: ['ethereum-sepolia'], tokens: ['USDC'] })).toEqual({
+      chains: [{ id: 'ethereum-sepolia', name: 'Ethereum Sepolia', status: 'enabled' }],
+      tokens: [{ symbol: 'USDC', status: 'enabled' }],
+    });
   });
 });

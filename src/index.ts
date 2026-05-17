@@ -83,6 +83,7 @@ export {
   createPublicOrderStatusView,
   createPublicPaymentLinkCheckoutView,
   createPublicDepositStatusView,
+  createPublicRuntimeDiscoveryView,
   renderPublicOrderStatusHtml,
   renderPublicPaymentLinkCheckoutHtml,
   renderPublicDepositStatusHtml,
@@ -90,11 +91,14 @@ export {
 } from './public-checkout.js';
 export type {
   PublicDepositStatusView,
+  PublicChainView,
   PublicOrderStatusInput,
   PublicOrderStatusTransferInput,
   PublicOrderStatusView,
   PublicPaymentLinkCheckoutOptions,
   PublicPaymentLinkCheckoutView,
+  PublicRuntimeDiscoveryView,
+  PublicTokenView,
 } from './public-checkout.js';
 
 export { createCloudServiceLayer } from './services/factory.js';

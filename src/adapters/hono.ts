@@ -3,7 +3,7 @@ import type { CloudRouteHandlersOptions } from '../routes/factory.js';
 import { createCloudRouteHandlers } from '../routes/factory.js';
 import { toLegacyCloudRouteResponse, type LegacyCloudResponseEnvelope, type LegacyPagination } from '../routes/legacy-compat.js';
 import type { CloudRouteResponse } from '../routes/http.js';
-import type { PublicDepositStatusView, PublicOrderStatusView, PublicPaymentLinkCheckoutView } from '../public-checkout.js';
+import type { PublicDepositStatusView, PublicOrderStatusView, PublicPaymentLinkCheckoutView, PublicRuntimeDiscoveryView } from '../public-checkout.js';
 import { renderPublicDepositStatusHtml, renderPublicOrderStatusHtml, renderPublicPaymentLinkCheckoutHtml, toLegacyPublicOrderStatusResponse } from '../public-checkout.js';
 
 export interface CloudHonoPublicCheckoutAdapter {
@@ -12,6 +12,7 @@ export interface CloudHonoPublicCheckoutAdapter {
   createPaymentLinkOrder?(input: { slug: string; requestOrigin: string; body: Record<string, unknown> }): Promise<PublicOrderStatusView | null> | PublicOrderStatusView | null;
   getPaymentLinkPreview?(input: { paymentLinkId: string; token?: string; viewport?: string; requestOrigin: string }): Promise<PublicPaymentLinkCheckoutView | null> | PublicPaymentLinkCheckoutView | null;
   getDepositStatus?(input: { address: string; requestOrigin: string }): Promise<PublicDepositStatusView | null> | PublicDepositStatusView | null;
+  getRuntimeDiscovery?(): Promise<PublicRuntimeDiscoveryView> | PublicRuntimeDiscoveryView;
 }
 
 export interface CloudHonoAdapterOptions extends CloudRouteHandlersOptions {
@@ -64,6 +65,11 @@ export function createCloudHonoApp(options: CloudHonoAdapterOptions): CloudHonoA
   }
 
   if (options.publicCheckout) {
+    app.get('/api/chains', async (c) => publicDiscoveryResponse(c, options.publicCheckout!.getRuntimeDiscovery, 'chains'));
+    app.get('/api/tokens', async (c) => publicDiscoveryResponse(c, options.publicCheckout!.getRuntimeDiscovery, 'tokens'));
+    app.get('/api/v1/chains', async (c) => publicDiscoveryResponse(c, options.publicCheckout!.getRuntimeDiscovery, 'chains'));
+    app.get('/api/v1/tokens', async (c) => publicDiscoveryResponse(c, options.publicCheckout!.getRuntimeDiscovery, 'tokens'));
+
     app.get('/api/payment-links/:slug', async (c) => {
       const slug = c.req.param('slug')?.trim();
       if (!slug) return c.json({ success: false, error: 'Invalid payment link', message: 'Provide a valid payment link slug.' }, 400);
@@ -111,6 +117,13 @@ export function createCloudHonoApp(options: CloudHonoAdapterOptions): CloudHonoA
       const deposit = await options.publicCheckout!.getDepositStatus({ address: c.req.param('address'), requestOrigin: requestOrigin(c) });
       if (!deposit) return c.html('<!doctype html><title>Deposit not found</title><h1>Deposit not found</h1>', 404);
       return c.html(renderPublicDepositStatusHtml(deposit));
+    });
+
+    app.get('/api/deposits/:address/status', async (c) => {
+      if (!options.publicCheckout!.getDepositStatus) return c.json({ success: false, error: 'Deposit status is not configured' }, 501);
+      const deposit = await options.publicCheckout!.getDepositStatus({ address: c.req.param('address'), requestOrigin: requestOrigin(c) });
+      if (!deposit) return c.json({ success: false, error: 'Deposit Not Found', message: 'We could not locate this deposit address.' }, 404);
+      return c.json({ success: true, data: deposit });
     });
 
     app.get('/checkout/:slug', async (c) => {
@@ -167,4 +180,14 @@ function requestOrigin(c: { req: { raw: Request; header: (name: string) => strin
 function wantsHtml(c: { req: { header: (name: string) => string | undefined } }): boolean {
   const accept = c.req.header('accept') ?? '';
   return accept.includes('text/html') && !accept.includes('application/json');
+}
+
+async function publicDiscoveryResponse(
+  c: { json: (body: unknown, status?: never) => Response },
+  discovery: (() => Promise<PublicRuntimeDiscoveryView> | PublicRuntimeDiscoveryView) | undefined,
+  key: 'chains' | 'tokens'
+): Promise<Response> {
+  if (!discovery) return c.json({ success: false, error: 'Runtime discovery is not configured' }, 501 as never);
+  const data = await discovery();
+  return c.json({ success: true, data: data[key] });
 }

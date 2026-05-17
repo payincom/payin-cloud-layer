@@ -60,6 +60,22 @@ export interface PublicDepositStatusView {
   metadata?: Record<string, unknown>;
 }
 
+export interface PublicChainView {
+  id: string;
+  name: string;
+  status: 'enabled';
+}
+
+export interface PublicTokenView {
+  symbol: string;
+  status: 'enabled';
+}
+
+export interface PublicRuntimeDiscoveryView {
+  chains: PublicChainView[];
+  tokens: PublicTokenView[];
+}
+
 export function createPublicOrderStatusView(input: PublicOrderStatusInput): PublicOrderStatusView {
   const summary = createCloudOrderStatusSummary(input.order);
   const transfers = input.transfers ?? [];
@@ -190,6 +206,17 @@ export function renderPublicDepositStatusHtml(view: PublicDepositStatusView): st
       <script type="application/json" id="payin-deposit-status-data">${escapeHtml(JSON.stringify({ success: true, data: view }))}</script>
     </main>
   `);
+}
+
+export function createPublicRuntimeDiscoveryView(input: { chains: string[]; tokens: string[] }): PublicRuntimeDiscoveryView {
+  return {
+    chains: input.chains.map((id) => ({ id, name: humanizeIdentifier(id), status: 'enabled' as const })),
+    tokens: input.tokens.map((symbol) => ({ symbol, status: 'enabled' as const })),
+  };
+}
+
+function humanizeIdentifier(value: string): string {
+  return value.split(/[-_]/g).filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ') || value;
 }
 
 function htmlDocument(title: string, body: string): string {

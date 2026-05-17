@@ -97,9 +97,12 @@ describe('Cloud Hono adapter', () => {
         getDepositStatus: async ({ address, requestOrigin }) => address === '0xdeposit'
           ? createPublicDepositStatusView({ tenant: { organizationId: 'org-public' }, address, protocol: 'evm', state: 'bound', depositReference: 'dep-public' }, { requestOrigin })
           : null,
+        getRuntimeDiscovery: async () => ({ chains: [{ id: 'ethereum-sepolia', name: 'Ethereum Sepolia', status: 'enabled' }], tokens: [{ symbol: 'USDC', status: 'enabled' }] }),
       },
     });
 
+    await expect(responseJson(app.request('https://pay.example/api/chains'))).resolves.toEqual({ success: true, data: [{ id: 'ethereum-sepolia', name: 'Ethereum Sepolia', status: 'enabled' }] });
+    await expect(responseJson(app.request('https://pay.example/api/v1/tokens'))).resolves.toEqual({ success: true, data: [{ symbol: 'USDC', status: 'enabled' }] });
     await expect(responseJson(app.request('https://pay.example/api/payment-links/public-checkout'))).resolves.toMatchObject({ success: true, data: { id: 'plink-public', slug: 'public-checkout' } });
     const checkoutOrder = await app.request('https://pay.example/api/payment-links/public-checkout/orders', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ buyerEmail: 'buyer@example.com', chainId: 'ethereum-sepolia' }) });
     expect(checkoutOrder.status).toBe(201);
@@ -118,6 +121,7 @@ describe('Cloud Hono adapter', () => {
     const depositHtml = await app.request('https://pay.example/pay/deposit/0xdeposit', { headers: { accept: 'text/html' } });
     expect(depositHtml.status).toBe(200);
     await expect(depositHtml.text()).resolves.toContain('id="payin-deposit-status-data"');
+    await expect(responseJson(app.request('https://pay.example/api/deposits/0xdeposit/status'))).resolves.toMatchObject({ success: true, data: { address: '0xdeposit', depositReference: 'dep-public' } });
     await expect(responseStatus(app.request('https://pay.example/checkout/missing'))).resolves.toBe(404);
   });
 

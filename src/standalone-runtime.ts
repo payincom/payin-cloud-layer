@@ -25,6 +25,7 @@ import {
   createPublicDepositStatusView,
   createPublicOrderStatusView,
   createPublicPaymentLinkCheckoutView,
+  createPublicRuntimeDiscoveryView,
   createRuntimeReadinessReport,
   type CloudHonoApp,
   type CloudTenantContext,
@@ -167,6 +168,10 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions = {}):
         const addresses = await addressPool.list(tenant);
         const entry = addresses.find((candidate) => candidate.address.toLowerCase() === address.toLowerCase()) ?? null;
         return entry ? createPublicDepositStatusView(entry, { requestOrigin }) : null;
+      },
+      getRuntimeDiscovery: async () => {
+        const config = await hostedConfig.getTenantConfig(tenant);
+        return createPublicRuntimeDiscoveryView({ chains: config.enabledChains, tokens: config.enabledTokens });
       },
     },
   });
