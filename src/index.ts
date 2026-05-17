@@ -85,6 +85,22 @@ export {
   shouldRunDisposableIntegration,
 } from './integration-safety.js';
 
+export {
+  CloudSubscriptionError,
+  InMemoryCloudSubscriptionRepository,
+  SubscriptionEntitlementProvider,
+  SubscriptionUsageLimitExceededError,
+  assertSubscriptionUsageLimit,
+  isSubscriptionActive,
+  normalizeCloudSubscription,
+} from './subscription.js';
+export type {
+  CloudSubscription,
+  CloudSubscriptionInput,
+  CloudSubscriptionRepository,
+  CloudSubscriptionStatus,
+} from './subscription.js';
+
 export { WebhookDeliveryWorker } from './webhook-delivery-worker.js';
 export type {
   WebhookDeliveryTransport,
