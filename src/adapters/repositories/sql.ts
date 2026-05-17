@@ -4,6 +4,7 @@ import { normalizeCloudAddressPoolEntry, type CloudAddressPoolEntry, type Normal
 import { normalizeCloudWebhookEndpoint, type CloudWebhookEndpoint, type CloudWebhookEndpointInput } from '../../webhooks.js';
 import { normalizeCloudTenantContext, type CloudTenantContext } from '../../context.js';
 import { normalizeHostedRuntimeConfig, type HostedConfigRepository, type HostedRuntimeConfig, type HostedRuntimeConfigInput } from '../../hosted-config.js';
+import { createCloudWebhookDeliveryRecord, type CloudNotificationDeliveryRepository, type CloudWebhookDeliveryRecord } from '../../notification-delivery.js';
 import { createUsageDedupeKey, normalizeUsageEvent, type RequiredUsageEvent, type UsageMeter, type UsageQuery } from '../../usage-meter.js';
 import type { CloudUsageEvent } from '../../hooks.js';
 import type { CloudAuditTrail, CloudAuditTrailEvent, CloudAuditTrailQuery } from '../../audit-risk.js';
@@ -49,6 +50,47 @@ export function rejectUnsafeSqlIdentifier(identifier: string): string {
     throw new Error('Unsafe SQL identifier');
   }
   return identifier;
+}
+
+export class SqlCloudNotificationDeliveryRepository implements CloudNotificationDeliveryRepository {
+  private readonly tableName: string;
+
+  constructor(private readonly db: SqlQueryExecutor, options: { tableName?: string } = {}) {
+    this.tableName = rejectUnsafeSqlIdentifier(options.tableName ?? 'notification_deliveries');
+  }
+
+  async enqueue(record: CloudWebhookDeliveryRecord): Promise<CloudWebhookDeliveryRecord> {
+    const result = await this.db.query<Record<string, unknown>>(
+      `INSERT INTO ${this.tableName} (id, organization_id, endpoint_id, event_id, event_type, url, headers, body, status, attempt_count, last_status_code, error_message, next_attempt_at, delivered_at, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
+      [record.id, record.tenant.organizationId, record.endpointId, record.eventId, record.eventType, record.url, record.headers, record.body, record.status, record.attemptCount, record.lastStatusCode, record.errorMessage, record.nextAttemptAt, record.deliveredAt, record.createdAt, record.updatedAt]
+    );
+    return mapNotificationDeliveryRow(result.rows[0]);
+  }
+
+  async listForTenant(tenant: CloudTenantContext): Promise<CloudWebhookDeliveryRecord[]> {
+    const result = await this.db.query<Record<string, unknown>>(
+      `SELECT * FROM ${this.tableName} WHERE organization_id = $1 ORDER BY created_at ASC`,
+      [tenant.organizationId]
+    );
+    return result.rows.map(mapNotificationDeliveryRow);
+  }
+
+  async claimDue(input: { now: Date; limit: number }): Promise<CloudWebhookDeliveryRecord[]> {
+    const result = await this.db.query<Record<string, unknown>>(
+      `UPDATE ${this.tableName} SET status = 'processing', updated_at = $1 WHERE id IN (SELECT id FROM ${this.tableName} WHERE status IN ('queued', 'retry_scheduled') AND (next_attempt_at IS NULL OR next_attempt_at <= $1) ORDER BY COALESCE(next_attempt_at, created_at) ASC LIMIT $2 FOR UPDATE SKIP LOCKED) RETURNING *`,
+      [input.now, input.limit]
+    );
+    return result.rows.map(mapNotificationDeliveryRow);
+  }
+
+  async replace(record: CloudWebhookDeliveryRecord): Promise<CloudWebhookDeliveryRecord> {
+    const result = await this.db.query<Record<string, unknown>>(
+      `UPDATE ${this.tableName} SET status = $1, attempt_count = $2, last_status_code = $3, error_message = $4, next_attempt_at = $5, delivered_at = $6, updated_at = $7 WHERE id = $8 AND organization_id = $9 RETURNING *`,
+      [record.status, record.attemptCount, record.lastStatusCode, record.errorMessage, record.nextAttemptAt, record.deliveredAt, record.updatedAt, record.id, record.tenant.organizationId]
+    );
+    if (!result.rows[0]) throw new Error(`Notification delivery not found: ${record.id}`);
+    return mapNotificationDeliveryRow(result.rows[0]);
+  }
 }
 
 export class SqlHostedConfigRepository implements HostedConfigRepository {
@@ -505,6 +547,27 @@ function mapAddressPoolRow(row: Record<string, unknown>, tenant: CloudTenantCont
     masterPublicKeyRef: row.master_public_key_ref ? String(row.master_public_key_ref) : undefined,
     depositReference: row.deposit_reference ? String(row.deposit_reference) : undefined,
     orderId: row.order_id ? String(row.order_id) : undefined,
+  });
+}
+
+function mapNotificationDeliveryRow(row: Record<string, unknown>): CloudWebhookDeliveryRecord {
+  return createCloudWebhookDeliveryRecord({
+    id: String(row.id),
+    tenant: { organizationId: String(row.organization_id) },
+    endpointId: String(row.endpoint_id),
+    eventId: String(row.event_id),
+    eventType: String(row.event_type),
+    url: String(row.url),
+    headers: row.headers as Record<string, string>,
+    body: String(row.body),
+    status: String(row.status) as CloudWebhookDeliveryRecord['status'],
+    attemptCount: Number(row.attempt_count ?? 0),
+    lastStatusCode: row.last_status_code == null ? undefined : Number(row.last_status_code),
+    errorMessage: row.error_message ? String(row.error_message) : undefined,
+    nextAttemptAt: row.next_attempt_at ? new Date(String(row.next_attempt_at)) : undefined,
+    deliveredAt: row.delivered_at ? new Date(String(row.delivered_at)) : undefined,
+    createdAt: row.created_at ? new Date(String(row.created_at)) : undefined,
+    updatedAt: row.updated_at ? new Date(String(row.updated_at)) : undefined,
   });
 }
 

@@ -158,6 +158,7 @@ export {
   SqlCloudAddressPoolRepository,
   SqlCloudApiKeyRepository,
   SqlCloudAuditTrail,
+  SqlCloudNotificationDeliveryRepository,
   SqlCloudOrderRepository,
   SqlCloudOrganizationRepository,
   SqlCloudPaymentLinkRepository,

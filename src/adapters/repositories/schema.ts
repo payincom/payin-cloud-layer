@@ -9,6 +9,7 @@ export const CLOUD_LAYER_MINIMAL_SCHEMA_TABLES = [
   'address_pool',
   'webhook_endpoints',
   'hosted_configs',
+  'notification_deliveries',
   'usage_events',
   'audit_events',
 ] as const;
@@ -123,6 +124,25 @@ CREATE TABLE IF NOT EXISTS hosted_configs (
   secret_refs JSONB,
   limits JSONB,
   metadata JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS notification_deliveries (
+  id TEXT PRIMARY KEY,
+  organization_id TEXT NOT NULL REFERENCES organizations(id),
+  endpoint_id TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  url TEXT NOT NULL,
+  headers JSONB NOT NULL,
+  body TEXT NOT NULL,
+  status TEXT NOT NULL,
+  attempt_count INTEGER NOT NULL DEFAULT 0,
+  last_status_code INTEGER,
+  error_message TEXT,
+  next_attempt_at TIMESTAMPTZ,
+  delivered_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
