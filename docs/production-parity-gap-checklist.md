@@ -26,7 +26,7 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
   - `GET /api/deposits/:address/status`
   - `GET /api/orders/:orderId/transfers`
   - `GET /api/transfers/:transactionHash/status`
-- Online E2E validates chain/token discovery, checkout JSON, checkout HTML, checkout preview HTML, order transfer/status APIs, order status HTML, deposit HTML/status API, public checkout order creation, merchant APIs, webhook endpoint list/delete/test, webhook delivery list/replay, audit event list, smoke, and auth failure.
+- Online E2E validates chain/token discovery, checkout JSON, checkout HTML, checkout preview HTML, order transfer/status APIs, order status HTML, deposit HTML/status API, public checkout order creation, merchant APIs, organization/member routes, webhook endpoint list/delete/test, webhook delivery list/replay, audit event list, runtime deployment metadata, security headers, smoke, and auth failure.
 
 ## Remaining gaps before full production replacement
 
@@ -53,18 +53,18 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 ### P1 — Management API surface
 
 - [ ] User/auth routes beyond API-key auth.
-- [ ] Audit/event list routes.
+- [x] Audit/event list routes.
 - [ ] Full config-management CRUD parity.
 - [x] Webhook endpoint list/delete routes.
 - [x] Webhook delivery listing/replay routes.
-- [x] Audit event listing route.
-- [ ] Organization/member routes exposed through the deployable Hono runtime, not only route harnesses.
+- [x] Organization/member routes exposed through the deployable Hono runtime.
 
 ### P1 — Persistence and operations
 
 - [x] Deploy sandbox against managed PostgreSQL adapters instead of the current in-memory standalone runtime.
 - [x] Apply minimal schema automatically on startup for the sandbox.
-- [ ] Configure production-grade secrets, CORS, domains, observability, rate limits, and rollback.
+- [x] Add runtime deployment metadata endpoint, security headers, configurable CORS, and in-process rate-limit hooks.
+- [ ] Configure production-grade secrets, custom domains, external observability, persistent/distributed rate limits, and formal rollback runbook.
 - [x] Run deployed E2E against managed PostgreSQL and confirm state survives restart.
 
 ### P2 — Compatibility hardening
@@ -78,6 +78,6 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 
 - Railway sandbox: `payincloudsandbox` / `cloud-runtime`
 - URL: `https://cloud-runtime-production-13e5.up.railway.app`
-- Latest managed-PostgreSQL public discovery/checkout/order/deposit/preview/transfer/webhook-delivery/audit E2E passed with slug `deployed-e2e-mp9m07dv`.
+- Latest managed-PostgreSQL public discovery/checkout/order/deposit/preview/transfer/webhook-delivery/audit/organization/hardening E2E passed with slug `deployed-e2e-mp9ma02g`.
 - Latest persisted state verified after Railway restart: order `order-mp9l9sq5-yrndogpu` and payment-link slug `deployed-e2e-mp9l9rom` remained readable.
-- Latest commit implementing webhook delivery list/replay APIs: `a00f63b`.
+- Latest commit implementing organization runtime routes: `0fdcc51`.
