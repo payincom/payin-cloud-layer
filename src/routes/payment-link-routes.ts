@@ -10,8 +10,10 @@ export interface CloudPaymentLinkCreateRouteBody {
   description?: string;
   amount: string;
   currency: string;
-  chainOptions: string[];
+  chainOptions?: string[];
+  chain_options?: string[];
   inventoryTotal?: number | null;
+  inventory_total?: number | null;
   metadata?: Record<string, unknown>;
 }
 
@@ -40,8 +42,8 @@ export function createCloudPaymentLinkRouteHandlers(options: CloudPaymentLinkRou
           description: request.body.description,
           amount: request.body.amount,
           currency: request.body.currency,
-          chainOptions: request.body.chainOptions,
-          inventoryTotal: request.body.inventoryTotal,
+          chainOptions: request.body.chainOptions ?? request.body.chain_options ?? [],
+          inventoryTotal: request.body.inventoryTotal ?? request.body.inventory_total,
           metadata: request.body.metadata,
         });
         return { status: 201, body: { data: link } };

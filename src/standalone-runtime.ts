@@ -193,7 +193,7 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions & { ba
     publicCheckout: {
       getOrderStatus: async ({ orderId }) => {
         const order = await orders.get(orderId, tenant) as NormalizedCloudOrder | null;
-        return order ? createPublicOrderStatusView({ order }) : null;
+        return order ? createPublicOrderStatusView({ order, redirectUrl: readStringAlias(order.metadata, 'redirectUrl', 'redirect_url') }) : null;
       },
       getPaymentLinkCheckout: async ({ slug, requestOrigin }) => {
         const links = await paymentLinks.list(tenant) as NormalizedCloudPaymentLink[];
@@ -204,12 +204,13 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions & { ba
         const links = await paymentLinks.list(tenant) as NormalizedCloudPaymentLink[];
         const link = links.find((candidate) => candidate.slug === slug) ?? null;
         if (!link) return null;
-        const buyerEmail = typeof body.buyerEmail === 'string' ? body.buyerEmail.trim().toLowerCase() : undefined;
-        const chainId = typeof body.chainId === 'string' && body.chainId.trim() ? body.chainId.trim() : link.chainOptions[0];
+        const buyerEmail = readStringAlias(body, 'buyerEmail', 'buyer_email')?.trim().toLowerCase();
+        const chainId = readStringAlias(body, 'chainId', 'chain_id')?.trim() || link.chainOptions[0];
+        const redirectUrl = readStringAlias(body, 'redirectUrl', 'redirect_url');
         if (!link.chainOptions.includes(chainId)) throw new Error('Requested chain is not enabled for this payment link');
         const order = await orders.create({
           tenant,
-          orderReference: typeof body.orderReference === 'string' && body.orderReference.trim() ? body.orderReference.trim() : `plink-${link.id}-${Date.now()}`,
+          orderReference: readStringAlias(body, 'orderReference', 'order_reference')?.trim() || `plink-${link.id}-${Date.now()}`,
           amount: link.amount,
           currency: link.currency,
           chainId,
@@ -218,9 +219,10 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions & { ba
             paymentLinkId: link.id,
             paymentLinkSlug: slug,
             ...(buyerEmail ? { buyerEmail } : {}),
+            ...(redirectUrl ? { redirectUrl, redirect_url: redirectUrl } : {}),
           },
         });
-        return createPublicOrderStatusView({ order });
+        return createPublicOrderStatusView({ order, redirectUrl });
       },
       getPaymentLinkPreview: async ({ paymentLinkId, token, requestOrigin }) => {
         const links = await paymentLinks.list(tenant) as NormalizedCloudPaymentLink[];
@@ -264,6 +266,11 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions & { ba
 function parseCsv(value: string | undefined): string[] | undefined {
   const entries = value?.split(',').map((entry) => entry.trim()).filter(Boolean) ?? [];
   return entries.length ? entries : undefined;
+}
+
+function readStringAlias(source: Record<string, unknown> | undefined, camelKey: string, snakeKey: string): string | undefined {
+  const value = source?.[camelKey] ?? source?.[snakeKey];
+  return typeof value === 'string' && value.trim() ? value : undefined;
 }
 
 async function createPostgresBackingStores(options: PayInCloudRuntimeOptions, databaseUrl: string): Promise<RuntimeBackingStores> {

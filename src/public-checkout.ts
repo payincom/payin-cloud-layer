@@ -35,6 +35,7 @@ export interface PublicOrderStatusView extends CloudOrderStatusSummary {
   isFullyPaid: boolean;
   transferCount: number;
   redirectUrl?: string | null;
+  redirect_url?: string | null;
 }
 
 export interface PublicPaymentLinkCheckoutOptions {
@@ -119,6 +120,7 @@ export function createPublicOrderStatusView(input: PublicOrderStatusInput): Publ
     isFullyPaid: received >= required,
     transferCount: transfers.length,
     redirectUrl: input.redirectUrl ?? null,
+    redirect_url: input.redirectUrl ?? null,
   };
 }
 
