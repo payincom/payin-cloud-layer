@@ -23,7 +23,9 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
   - `GET /api/v1/chains`
   - `GET /api/v1/tokens`
   - `GET /api/deposits/:address/status`
-- Online E2E validates chain/token discovery, checkout JSON, checkout HTML, checkout preview HTML, order status HTML, deposit HTML/status API, public checkout order creation, merchant APIs, webhook tests, smoke, and auth failure.
+  - `GET /api/orders/:orderId/transfers`
+  - `GET /api/transfers/:transactionHash/status`
+- Online E2E validates chain/token discovery, checkout JSON, checkout HTML, checkout preview HTML, order transfer/status APIs, order status HTML, deposit HTML/status API, public checkout order creation, merchant APIs, webhook tests, smoke, and auth failure.
 
 ## Remaining gaps before full production replacement
 
@@ -42,7 +44,7 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 
 - [x] Minimal chain and token discovery routes.
 - [x] Minimal deposit status/reference API for address-bound deposits.
-- [ ] Transfer detection/status APIs.
+- [x] Minimal transfer detection/status APIs.
 - [x] Minimal address-bound deposit page shell.
 - [x] Minimal deposit status polling JSON API.
 - [ ] Real chain monitor integration rather than in-memory status only.
@@ -73,5 +75,5 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 
 - Railway sandbox: `payincloudsandbox` / `cloud-runtime`
 - URL: `https://cloud-runtime-production-13e5.up.railway.app`
-- Latest public discovery/checkout/order/deposit/preview E2E passed with slug `deployed-e2e-mp9jk9mj`.
-- Latest commit implementing public discovery and deposit status APIs: `255bee7`.
+- Latest public discovery/checkout/order/deposit/preview/transfer E2E passed with slug `deployed-e2e-mp9kwqw8`.
+- Latest commit implementing public transfer status APIs: `9789c51`.
