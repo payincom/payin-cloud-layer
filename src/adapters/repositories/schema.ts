@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS organizations (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE IF NOT EXISTS organization_members (
   organization_id TEXT NOT NULL REFERENCES organizations(id),
   user_id TEXT NOT NULL,
@@ -37,12 +39,17 @@ CREATE TABLE IF NOT EXISTS organization_members (
 CREATE TABLE IF NOT EXISTS api_keys (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
+  key_hash TEXT,
   key_prefix TEXT NOT NULL,
   name TEXT NOT NULL,
   organization_id TEXT NOT NULL REFERENCES organizations(id),
+  role TEXT,
+  capabilities TEXT[],
   expires_at TIMESTAMPTZ,
   revoked_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  last_used_at TIMESTAMPTZ,
+  metadata JSONB
 );
 
 CREATE TABLE IF NOT EXISTS orders (
