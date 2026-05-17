@@ -338,12 +338,15 @@ export type {
 export {
   InMemoryUsageMeter,
   UsageDuplicateError,
+  aggregateBillingPeriodUsage,
   createUsageDedupeKey,
+  getBillingPeriodRange,
   normalizeUsageEvent,
   summarizeUsage,
   toBillingPeriod,
 } from './usage-meter.js';
 export type {
+  BillingPeriodUsageQuery,
   RequiredUsageEvent,
   UsageDuplicatePolicy,
   UsageMeter,

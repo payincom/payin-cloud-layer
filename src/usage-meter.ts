@@ -17,7 +17,14 @@ export interface UsageQuery {
 export interface UsageSummary {
   tenantId: string;
   period: string;
+  periodStart?: Date;
+  periodEnd?: Date;
   totals: Partial<Record<CloudUsageEvent['type'], number>>;
+}
+
+export interface BillingPeriodUsageQuery {
+  tenantId: string;
+  period: string;
 }
 
 export interface RequiredUsageEvent extends CloudUsageEvent {
@@ -111,6 +118,35 @@ export function summarizeUsage(events: CloudUsageEvent[], period: string): Usage
   }
 
   return { tenantId, period, totals };
+}
+
+export async function aggregateBillingPeriodUsage(meter: UsageMeter, query: BillingPeriodUsageQuery): Promise<Required<UsageSummary>> {
+  const { start, end } = getBillingPeriodRange(query.period);
+  const events = await meter.listUsage({ tenantId: query.tenantId, from: start, to: end });
+  const totals: Partial<Record<CloudUsageEvent['type'], number>> = {};
+
+  for (const event of events) {
+    totals[event.type] = (totals[event.type] ?? 0) + event.quantity;
+  }
+
+  return {
+    tenantId: query.tenantId,
+    period: query.period,
+    periodStart: start,
+    periodEnd: end,
+    totals,
+  };
+}
+
+export function getBillingPeriodRange(period: string): { start: Date; end: Date } {
+  const match = /^(\d{4})-(\d{2})$/.exec(period);
+  if (!match) throw new Error(`Invalid billing period: ${period}`);
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) throw new Error(`Invalid billing period: ${period}`);
+  const start = new Date(Date.UTC(year, month - 1, 1));
+  const end = new Date(Date.UTC(year, month, 1));
+  return { start, end };
 }
 
 export function toBillingPeriod(date: Date): string {

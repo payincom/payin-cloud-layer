@@ -179,6 +179,8 @@ export class SqlCloudUsageMeter implements UsageMeter {
     let next = 1;
     if (query.tenantId) { clauses.push(`organization_id = $${next++}`); values.push(query.tenantId); }
     if (query.type) { clauses.push(`type = $${next++}`); values.push(query.type); }
+    if (query.from) { clauses.push(`occurred_at >= $${next++}`); values.push(query.from); }
+    if (query.to) { clauses.push(`occurred_at < $${next++}`); values.push(query.to); }
     const where = clauses.length ? ` WHERE ${clauses.join(' AND ')}` : '';
     const result = await this.db.query<Record<string, unknown>>(`SELECT * FROM ${this.tableName}${where} ORDER BY occurred_at ASC`, values);
     return result.rows.map((row) => ({

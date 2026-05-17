@@ -21,16 +21,16 @@ describe('SQL observability adapter contracts', () => {
     });
   });
 
-  it('lists usage events by tenant and type', async () => {
+  it('lists usage events by tenant, type, and billing-period range', async () => {
     const db = new SqlQueryRecorder([{ dedupe_key: 'k1', organization_id: 'org-observe', type: 'order.created', subject_id: 'order-1', quantity: 1, occurred_at: new Date('2026-05-16T22:00:00.000Z') }]);
     const meter = new SqlCloudUsageMeter(db);
 
-    await expect(meter.listUsage({ tenantId: 'org-observe', type: 'order.created' })).resolves.toMatchObject([
+    await expect(meter.listUsage({ tenantId: 'org-observe', type: 'order.created', from: new Date('2026-05-01T00:00:00.000Z'), to: new Date('2026-06-01T00:00:00.000Z') })).resolves.toMatchObject([
       { dedupeKey: 'k1', tenant: { organizationId: 'org-observe' }, type: 'order.created', subjectId: 'order-1' },
     ]);
     expect(db.queries[0]).toEqual({
-      text: 'SELECT * FROM usage_events WHERE organization_id = $1 AND type = $2 ORDER BY occurred_at ASC',
-      values: ['org-observe', 'order.created'],
+      text: 'SELECT * FROM usage_events WHERE organization_id = $1 AND type = $2 AND occurred_at >= $3 AND occurred_at < $4 ORDER BY occurred_at ASC',
+      values: ['org-observe', 'order.created', new Date('2026-05-01T00:00:00.000Z'), new Date('2026-06-01T00:00:00.000Z')],
     });
   });
 
