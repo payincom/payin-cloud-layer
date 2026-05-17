@@ -396,6 +396,84 @@ export function updateCloudMemberDraft(
   return stripUndefined({ role: nextRole, status: nextStatus });
 }
 
+export interface CloudOrganizationRepository {
+  getByTenant(tenant: { organizationId: string }): Promise<CloudOrganization | null> | CloudOrganization | null;
+  updateByTenant(tenant: { organizationId: string }, updates: CloudOrganizationUpdateDraft): Promise<CloudOrganization> | CloudOrganization;
+  listMembers(tenant: { organizationId: string }): Promise<CloudOrganizationMember[]> | CloudOrganizationMember[];
+  getMember(tenant: { organizationId: string }, userId: string): Promise<CloudOrganizationMember | null> | CloudOrganizationMember | null;
+  addMember(member: CloudMemberAddDraft): Promise<CloudOrganizationMember> | CloudOrganizationMember;
+  updateMember(tenant: { organizationId: string }, userId: string, updates: UpdateCloudMemberInput): Promise<CloudOrganizationMember> | CloudOrganizationMember;
+}
+
+export class InMemoryCloudOrganizationRepository implements CloudOrganizationRepository {
+  private readonly organizations = new Map<string, CloudOrganization>();
+  private readonly members = new Map<string, CloudOrganizationMember>();
+
+  constructor(organizations: CloudOrganization[] = [], members: CloudOrganizationMember[] = []) {
+    for (const organization of organizations) this.organizations.set(organization.id, { ...organization });
+    for (const member of members) this.members.set(memberKey(member.organizationId, member.userId), { ...member });
+  }
+
+  getByTenant(tenant: { organizationId: string }): CloudOrganization | null {
+    const organization = this.organizations.get(tenant.organizationId);
+    return organization ? { ...organization } : null;
+  }
+
+  updateByTenant(tenant: { organizationId: string }, updates: CloudOrganizationUpdateDraft): CloudOrganization {
+    const existing = this.organizations.get(tenant.organizationId);
+    if (!existing) throw new Error(`Organization not found: ${tenant.organizationId}`);
+    const merged = stripNulls({ ...existing, ...updates, updatedAt: new Date() });
+    const updated: CloudOrganization = {
+      id: String(merged.id),
+      name: String(merged.name),
+      slug: String(merged.slug),
+      planType: merged.planType as CloudOrganizationPlan,
+      avatarUrl: merged.avatarUrl ? String(merged.avatarUrl) : undefined,
+      website: merged.website ? String(merged.website) : undefined,
+      description: merged.description ? String(merged.description) : undefined,
+      monthlyOrderLimit: merged.monthlyOrderLimit as number | undefined,
+      createdAt: merged.createdAt as Date | undefined,
+      updatedAt: merged.updatedAt as Date | undefined,
+    };
+    this.organizations.set(updated.id, updated);
+    return { ...updated };
+  }
+
+  listMembers(tenant: { organizationId: string }): CloudOrganizationMember[] {
+    return [...this.members.values()]
+      .filter((member) => member.organizationId === tenant.organizationId)
+      .sort((a, b) => a.userId.localeCompare(b.userId))
+      .map((member) => ({ ...member }));
+  }
+
+  getMember(tenant: { organizationId: string }, userId: string): CloudOrganizationMember | null {
+    const member = this.members.get(memberKey(tenant.organizationId, userId));
+    return member ? { ...member } : null;
+  }
+
+  addMember(member: CloudMemberAddDraft): CloudOrganizationMember {
+    const key = memberKey(member.organizationId, member.userId);
+    if (this.members.has(key)) throw new Error(`Organization member already exists: ${member.userId}`);
+    const created = { ...member, id: `member_${this.members.size + 1}`, createdAt: new Date() };
+    this.members.set(key, created);
+    return { ...created };
+  }
+
+  updateMember(tenant: { organizationId: string }, userId: string, updates: UpdateCloudMemberInput): CloudOrganizationMember {
+    const key = memberKey(tenant.organizationId, userId);
+    const existing = this.members.get(key);
+    if (!existing) throw new Error(`Organization member not found: ${userId}`);
+    const draft = updateCloudMemberDraft(existing, updates);
+    const updated = { ...existing, ...draft };
+    this.members.set(key, updated);
+    return { ...updated };
+  }
+}
+
+function memberKey(organizationId: string, userId: string): string {
+  return `${organizationId}:${userId}`;
+}
+
 export function createOwnershipTransferRoleUpdates(
   currentOwner: Pick<CloudOrganizationMember, 'organizationId' | 'userId' | 'role' | 'status'>,
   targetMember: Pick<CloudOrganizationMember, 'organizationId' | 'userId' | 'role' | 'status'>
@@ -536,6 +614,10 @@ function normalizeInviteEmail(value: string): string {
     throw new CloudOrganizationValidationError('Invite email must be valid');
   }
   return email;
+}
+
+function stripNulls<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== null)) as T;
 }
 
 function stripUndefined<T extends Record<string, unknown>>(value: T): T {

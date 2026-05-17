@@ -41,6 +41,14 @@ export type {
   CloudAddressPoolServiceOptions,
   CloudAddressPoolSummaryServiceRequest,
 } from './services/address-pool-service.js';
+export { CloudOrganizationService } from './services/organization-service.js';
+export type {
+  CloudOrganizationAddMemberServiceRequest,
+  CloudOrganizationScopedRequest,
+  CloudOrganizationServiceOptions,
+  CloudOrganizationUpdateMemberServiceRequest,
+  CloudOrganizationUpdateServiceRequest,
+} from './services/organization-service.js';
 export { CloudOrderService } from './services/order-service.js';
 export type { CloudOrderCreateServiceRequest, CloudOrderServiceOptions } from './services/order-service.js';
 export { CloudPaymentLinkService } from './services/payment-link-service.js';
@@ -354,6 +362,7 @@ export {
   CloudOrganizationPlans,
   CloudOrganizationRoles,
   CloudOrganizationValidationError,
+  InMemoryCloudOrganizationRepository,
   assertActiveCloudMembership,
   assertCloudOrganizationPermission,
   createCloudMemberAddDraft,
@@ -380,6 +389,7 @@ export type {
   CloudOrganizationMember,
   CloudOrganizationPermission,
   CloudOrganizationPlan,
+  CloudOrganizationRepository,
   CloudOrganizationRole,
   CloudOrganizationUpdateDraft,
   CloudOrganizationWithRole,
