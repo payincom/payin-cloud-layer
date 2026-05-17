@@ -4,6 +4,13 @@ export { createCloudRouteHandlers } from './routes/factory.js';
 export type { CloudRouteHandlersOptions } from './routes/factory.js';
 export { createCloudAddressPoolRouteHandlers } from './routes/address-pool-routes.js';
 export type { CloudAddressPoolImportRouteBody, CloudAddressPoolRouteHandlersOptions } from './routes/address-pool-routes.js';
+export { createCloudOrganizationRouteHandlers } from './routes/organization-routes.js';
+export type {
+  CloudOrganizationAddMemberRouteBody,
+  CloudOrganizationRouteHandlersOptions,
+  CloudOrganizationUpdateMemberRouteBody,
+  CloudOrganizationUpdateRouteBody,
+} from './routes/organization-routes.js';
 export { createCloudOrderRouteHandlers } from './routes/order-routes.js';
 export type { CloudOrderCreateRouteBody, CloudOrderRouteHandlersOptions } from './routes/order-routes.js';
 export { createCloudPaymentLinkRouteHandlers } from './routes/payment-link-routes.js';
