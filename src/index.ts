@@ -6,15 +6,25 @@ export {
   CLOUD_LEGACY_ROUTE_COMPATIBILITY,
   toLegacyApiKeyCreateResponse,
   toLegacyApiKeyListResponse,
+  toLegacyConfigResponse,
+  toLegacyDataResponse,
   toLegacyEmptyResponse,
   toLegacyMemberResponse,
+  toLegacyOrderListResponse,
+  toLegacyOrderResponse,
   toLegacyOrganizationListResponse,
   toLegacyOrganizationResponse,
+  toLegacyPaginatedDataResponse,
+  toLegacyPaymentLinkListResponse,
+  toLegacyPaymentLinkResponse,
+  toLegacyWebhookEndpointListResponse,
+  toLegacyWebhookEndpointResponse,
 } from './routes/legacy-compat.js';
 export type {
   LegacyCloudHttpMethod,
   LegacyCloudResponseEnvelope,
   LegacyCloudRouteCompatibilityEntry,
+  LegacyPagination,
 } from './routes/legacy-compat.js';
 export { createCloudAddressPoolRouteHandlers } from './routes/address-pool-routes.js';
 export type { CloudAddressPoolImportRouteBody, CloudAddressPoolRouteHandlersOptions } from './routes/address-pool-routes.js';
