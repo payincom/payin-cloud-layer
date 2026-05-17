@@ -14,13 +14,13 @@ Status legend:
 | Organization roles/plans/status | `packages/auth/src/types/organizations.ts` | `src/organization.ts` | `tests/unit/organization-contract.test.ts` | contracted / adapter-pending |
 | Organization/member management | `packages/auth/src/organization-manager.ts`, `apps/api/src/routes/organizations.ts` | `src/organization.ts`, `src/services/organization-service.ts`, `src/routes/organization-routes.ts` | contract + service + route + SQL + disposable integration tests | contracted / service-covered / route-covered / SQL-verified |
 | API key auth/scope | `api_keys`, auth middleware | `src/api-key.ts`, `src/services/api-key-service.ts`, `src/routes/api-key-routes.ts` | `tests/unit/api-key.test.ts`, `tests/unit/cloud-api-key-service.test.ts`, `tests/unit/api-key-route-harness.test.ts`, SQL + disposable integration | contracted / service-covered / route-covered / SQL-verified |
-| Hosted tenant config | config-management routes | `src/hosted-config.ts`, `src/services/hosted-config-service.ts`, `src/routes/hosted-config-routes.ts` | contract + service + route tests | contracted / service-covered / route-covered |
+| Hosted tenant config | config-management routes | `src/hosted-config.ts`, `src/services/hosted-config-service.ts`, `src/routes/hosted-config-routes.ts`, `SqlHostedConfigRepository` | contract + service + route + SQL + disposable integration tests | contracted / service-covered / route-covered / SQL-verified |
 | Billing usage metering | hosted billing semantics | `src/usage-meter.ts`, `src/hooks.ts` | `tests/unit/billing-usage.test.ts` | contracted / adapter-pending |
 | Audit/risk/support | `packages/auth/src/middleware/audit-middleware.ts` | `src/audit-risk.ts` | `tests/unit/audit-risk-contract.test.ts` | contracted / adapter-pending |
 | Orders | `orders`, multi-tenant API tests | `src/orders.ts`, `src/cloud-manager.ts`, `src/services/order-service.ts` | `tests/unit/order-contract.test.ts`, `tests/unit/cloud-manager.test.ts`, `tests/unit/cloud-order-service.test.ts` | contracted / service-covered / adapter-pending |
 | Payment links | `apps/api/tests/payment-links-api.test.ts` | `src/payment-links.ts`, `src/cloud-manager.ts`, `src/services/payment-link-service.ts` | `tests/unit/payment-link-contract.test.ts`, `tests/unit/cloud-payment-link-service.test.ts` | contracted / service-covered / adapter-pending |
 | Address pool/deposits | `apps/api/tests/address-pool-summary-api.test.ts` | `src/address-pool.ts`, `src/cloud-processor.ts`, `src/cloud-manager.ts`, `src/services/address-pool-service.ts` | `tests/unit/address-pool-contract.test.ts`, `tests/unit/cloud-processor.test.ts`, `tests/unit/cloud-address-pool-service.test.ts` | contracted / service-covered / adapter-pending |
-| Webhooks/notifications | `packages/notification/tests/webhook-notifier.test.ts` | `src/webhooks.ts`, `src/cloud-manager.ts`, `src/services/webhook-service.ts` | `tests/unit/webhook-contract.test.ts`, `tests/unit/cloud-webhook-service.test.ts` | contracted / service-covered / adapter-pending |
+| Webhooks/notifications | `packages/notification/tests/webhook-notifier.test.ts` | `src/webhooks.ts`, `src/notification-delivery.ts`, `src/cloud-manager.ts`, `src/services/webhook-service.ts`, `SqlCloudNotificationDeliveryRepository` | webhook + delivery persistence + SQL + disposable integration tests | contracted / service-covered / delivery-persistence-covered / SQL-verified |
 | Processor runtime adapter | shared processor compatibility | `src/cloud-processor.ts` | `tests/unit/cloud-processor.test.ts` | contracted / adapter-pending |
 | Hosted runtime readiness/smoke | Cloud ops/readiness | planned | planned | planned |
 | Concrete DB/API adapters | old Cloud DB/routes | `src/adapters/repositories/*`, `src/routes/*` | repository + SQL + route harness tests | partially contracted / implementation-pending |
@@ -28,7 +28,7 @@ Status legend:
 
 ## Current verification gate
 
-`npm run verify` must pass before every push. Latest default verification after organization/config management expansion: 47 test files / 166 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution for tenant/organization/member/API-key/order/payment-link/address-pool/webhook/usage/audit adapters.
+`npm run verify` must pass before every push. Latest default verification after hosted config + notification persistence expansion: 50 test files / 175 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution for tenant/organization/member/API-key/hosted-config/order/payment-link/address-pool/webhook/notification-delivery/usage/audit adapters.
 
 ## Reference inventory snapshot
 
@@ -47,5 +47,5 @@ Cloud API route extraction:
 
 - compare old route request/response shapes against the framework-neutral route harnesses
 - add framework adapter examples for Hono/Express/Fastify if needed
-- expand hosted config persistence into SQL contracts/disposable integration
-- then continue notification delivery persistence/queue and billing/subscription enforcement
+- add webhook delivery worker/service contract around notification delivery repository and retry policy
+- then continue billing/subscription enforcement
