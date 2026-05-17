@@ -15,6 +15,7 @@ Status legend:
 | Organization/member management | `packages/auth/src/organization-manager.ts`, `apps/api/src/routes/organizations.ts` | `src/organization.ts`, `src/services/organization-service.ts`, `src/routes/organization-routes.ts` | contract + service + route + SQL + disposable integration tests | contracted / service-covered / route-covered / SQL-verified |
 | API key auth/scope | `api_keys`, auth middleware | `src/api-key.ts`, `src/services/api-key-service.ts`, `src/routes/api-key-routes.ts` | `tests/unit/api-key.test.ts`, `tests/unit/cloud-api-key-service.test.ts`, `tests/unit/api-key-route-harness.test.ts`, SQL + disposable integration | contracted / service-covered / route-covered / SQL-verified |
 | Hosted tenant config | config-management routes | `src/hosted-config.ts`, `src/services/hosted-config-service.ts`, `src/routes/hosted-config-routes.ts`, `SqlHostedConfigRepository` | contract + service + route + SQL + disposable integration tests | contracted / service-covered / route-covered / SQL-verified |
+| Config diagnostics | `apps/api/src/routes/config-diagnostics.ts` | `src/config-diagnostics.ts` | `tests/unit/config-diagnostics-contract.test.ts` | contracted / route-adapter-pending |
 | Billing usage metering / subscription enforcement | hosted billing semantics | `src/usage-meter.ts`, `src/subscription.ts`, `src/hooks.ts`, `SqlCloudSubscriptionRepository`, `SqlCloudUsageMeter`, service-layer `billingLimitEnforcer` wiring | billing usage + period aggregation + subscription enforcement + billing limit enforcer + write-path service enforcement + SQL + disposable integration tests | contracted / entitlement-covered / billing-limit-covered / write-path-covered / SQL-verified |
 | Audit/risk/support | `packages/auth/src/middleware/audit-middleware.ts` | `src/audit-risk.ts` | `tests/unit/audit-risk-contract.test.ts` | contracted / adapter-pending |
 | Orders | `orders`, multi-tenant API tests | `src/orders.ts`, `src/cloud-manager.ts`, `src/services/order-service.ts` | `tests/unit/order-contract.test.ts`, `tests/unit/cloud-manager.test.ts`, `tests/unit/cloud-order-service.test.ts` | contracted / service-covered / adapter-pending |
@@ -48,5 +49,5 @@ Cloud API route extraction:
 - compare old route request/response shapes against the framework-neutral route harnesses
 - add framework adapter examples for Hono/Express/Fastify if needed
 - expand concrete framework adapter examples for Cloud route harnesses if needed
-- continue old Cloud route extraction for auth/public checkout/config diagnostics surfaces
+- continue old Cloud route extraction for auth/public checkout surfaces
 - add list/get/update/delete route harnesses where service coverage already exists but route coverage is still thin

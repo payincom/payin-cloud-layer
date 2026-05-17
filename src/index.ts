@@ -60,6 +60,20 @@ export {
   toCloudRouteErrorResponse,
 } from './routes/http.js';
 export type { CloudRouteErrorBody, CloudRouteRequest, CloudRouteResponse } from './routes/http.js';
+
+export {
+  createCloudConfigDiagnostics,
+  sanitizeCloudMonitorConfig,
+  sanitizeCloudSecretLikeValue,
+  toLegacyConfigDiagnosticsResponse,
+} from './config-diagnostics.js';
+export type {
+  CloudConfigDiagnostics,
+  CloudConfigDiagnosticsInput,
+  CloudManagerMonitorConfig,
+  CloudMonitorDiagnosticsInput,
+} from './config-diagnostics.js';
+
 export { createCloudServiceLayer } from './services/factory.js';
 export type { CloudServiceLayer, CloudServiceLayerOptions } from './services/factory.js';
 export { CloudApiKeyService } from './services/api-key-service.js';
