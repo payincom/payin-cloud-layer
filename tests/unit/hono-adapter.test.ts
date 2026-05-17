@@ -88,9 +88,16 @@ describe('Cloud Hono adapter', () => {
         getPaymentLinkCheckout: async ({ slug, requestOrigin }) => slug === 'public-checkout'
           ? createPublicPaymentLinkCheckoutView({ id: 'plink-public', tenant: { organizationId: 'org-public' }, title: 'Public', amount: '10', currency: 'USDC', chainOptions: ['ethereum-sepolia'], status: 'published', slug }, { requestOrigin })
           : null,
+        createPaymentLinkOrder: async ({ slug }) => slug === 'public-checkout'
+          ? createPublicOrderStatusView({ order: { id: 'order-from-link', tenant: { organizationId: 'org-public' }, orderReference: 'ref-from-link', amount: '10', currency: 'USDC', chainId: 'ethereum-sepolia', status: 'pending', confirmedReceived: '0' } })
+          : null,
       },
     });
 
+    await expect(responseJson(app.request('https://pay.example/api/payment-links/public-checkout'))).resolves.toMatchObject({ success: true, data: { id: 'plink-public', slug: 'public-checkout' } });
+    const checkoutOrder = await app.request('https://pay.example/api/payment-links/public-checkout/orders', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ buyerEmail: 'buyer@example.com', chainId: 'ethereum-sepolia' }) });
+    expect(checkoutOrder.status).toBe(201);
+    await expect(checkoutOrder.json()).resolves.toMatchObject({ success: true, data: { orderId: 'order-from-link' }, orderUrl: 'https://pay.example/pay/order/order-from-link' });
     await expect(responseJson(app.request('https://pay.example/api/order-status/order-public'))).resolves.toMatchObject({ success: true, data: { orderId: 'order-public', status: 'pending' } });
     await expect(responseJson(app.request('https://pay.example/checkout/public-checkout'))).resolves.toMatchObject({ success: true, data: { id: 'plink-public', shareUrl: 'https://pay.example/checkout/public-checkout' } });
     const checkoutHtml = await app.request('https://pay.example/checkout/public-checkout', { headers: { accept: 'text/html' } });

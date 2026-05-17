@@ -9,6 +9,7 @@ import { renderPublicOrderStatusHtml, renderPublicPaymentLinkCheckoutHtml, toLeg
 export interface CloudHonoPublicCheckoutAdapter {
   getOrderStatus(input: { orderId: string }): Promise<PublicOrderStatusView | null> | PublicOrderStatusView | null;
   getPaymentLinkCheckout(input: { slug: string; requestOrigin: string }): Promise<PublicPaymentLinkCheckoutView | null> | PublicPaymentLinkCheckoutView | null;
+  createPaymentLinkOrder?(input: { slug: string; requestOrigin: string; body: Record<string, unknown> }): Promise<PublicOrderStatusView | null> | PublicOrderStatusView | null;
 }
 
 export interface CloudHonoAdapterOptions extends CloudRouteHandlersOptions {
@@ -61,6 +62,27 @@ export function createCloudHonoApp(options: CloudHonoAdapterOptions): CloudHonoA
   }
 
   if (options.publicCheckout) {
+    app.get('/api/payment-links/:slug', async (c) => {
+      const slug = c.req.param('slug')?.trim();
+      if (!slug) return c.json({ success: false, error: 'Invalid payment link', message: 'Provide a valid payment link slug.' }, 400);
+      const checkout = await options.publicCheckout!.getPaymentLinkCheckout({ slug, requestOrigin: requestOrigin(c) });
+      if (!checkout) return c.json({ success: false, error: 'Payment Link Not Found', message: 'We could not locate this payment link. It may have expired or been removed.' }, 404);
+      return c.json({ success: true, data: checkout });
+    });
+
+    app.post('/api/payment-links/:slug/orders', async (c) => {
+      if (!options.publicCheckout!.createPaymentLinkOrder) return c.json({ success: false, error: 'Checkout order creation is not configured' }, 501);
+      const slug = c.req.param('slug')?.trim();
+      if (!slug) return c.json({ success: false, error: 'Invalid payment link', message: 'Provide a valid payment link slug.' }, 400);
+      try {
+        const order = await options.publicCheckout!.createPaymentLinkOrder({ slug, requestOrigin: requestOrigin(c), body: await jsonBody(c) as Record<string, unknown> });
+        if (!order) return c.json({ success: false, error: 'Payment Link Not Found', message: 'We could not locate this payment link. It may have expired or been removed.' }, 404);
+        return c.json({ success: true, data: order, orderUrl: `${requestOrigin(c)}/pay/order/${encodeURIComponent(order.orderId)}` }, 201);
+      } catch (error) {
+        return c.json({ success: false, error: error instanceof Error ? error.message : 'Unable to create checkout order' }, 400);
+      }
+    });
+
     app.get('/api/order-status/:orderId', async (c) => {
       const status = await options.publicCheckout!.getOrderStatus({ orderId: c.req.param('orderId') });
       if (!status) return c.json({ success: false, error: 'Order not found', message: `Order with ID "${c.req.param('orderId')}" does not exist` }, 404);

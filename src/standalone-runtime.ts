@@ -132,6 +132,28 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions = {}):
         const link = links.find((candidate) => candidate.slug === slug) ?? null;
         return link ? createPublicPaymentLinkCheckoutView(link, { requestOrigin }) : null;
       },
+      createPaymentLinkOrder: async ({ slug, body }) => {
+        const links = await paymentLinks.list(tenant) as NormalizedCloudPaymentLink[];
+        const link = links.find((candidate) => candidate.slug === slug) ?? null;
+        if (!link) return null;
+        const buyerEmail = typeof body.buyerEmail === 'string' ? body.buyerEmail.trim().toLowerCase() : undefined;
+        const chainId = typeof body.chainId === 'string' && body.chainId.trim() ? body.chainId.trim() : link.chainOptions[0];
+        if (!link.chainOptions.includes(chainId)) throw new Error('Requested chain is not enabled for this payment link');
+        const order = await orders.create({
+          tenant,
+          orderReference: typeof body.orderReference === 'string' && body.orderReference.trim() ? body.orderReference.trim() : `plink-${link.id}-${Date.now()}`,
+          amount: link.amount,
+          currency: link.currency,
+          chainId,
+          metadata: {
+            source: 'public-payment-link',
+            paymentLinkId: link.id,
+            paymentLinkSlug: slug,
+            ...(buyerEmail ? { buyerEmail } : {}),
+          },
+        });
+        return createPublicOrderStatusView({ order });
+      },
     },
   });
 

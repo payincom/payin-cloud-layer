@@ -39,6 +39,11 @@ const published = await request(`/api/v1/payment-links/${link.data.id}/publish`,
 expect(published?.data?.slug === slug, 'payment link published with slug', published);
 const checkout = await request(`/checkout/${slug}`);
 expect(checkout?.data?.slug === slug, 'public checkout matches slug', checkout);
+const publicPaymentLink = await request(`/api/payment-links/${slug}`);
+expect(publicPaymentLink?.data?.slug === slug, 'public payment link API matches slug', publicPaymentLink);
+const checkoutOrder = await request(`/api/payment-links/${slug}/orders`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ buyerEmail: `buyer+${suffix}@example.com`, chainId: 'ethereum-sepolia', orderReference: `checkout-order-${suffix}` }) });
+expect(checkoutOrder?.data?.orderReference === `checkout-order-${suffix}`, 'public payment link order created', checkoutOrder);
+expect(checkoutOrder?.orderUrl?.endsWith(`/pay/order/${checkoutOrder.data.orderId}`), 'public payment link order URL returned', checkoutOrder);
 const checkoutHtml = await fetch(`${cleanBase}/checkout/${slug}`, { headers: { accept: 'text/html' } });
 const checkoutHtmlText = await checkoutHtml.text();
 expect(checkoutHtml.ok, 'public checkout HTML returns success', { status: checkoutHtml.status, body: checkoutHtmlText });
