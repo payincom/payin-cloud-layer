@@ -3,13 +3,15 @@ import type { CloudRouteHandlersOptions } from '../routes/factory.js';
 import { createCloudRouteHandlers } from '../routes/factory.js';
 import { toLegacyCloudRouteResponse, type LegacyCloudResponseEnvelope, type LegacyPagination } from '../routes/legacy-compat.js';
 import type { CloudRouteResponse } from '../routes/http.js';
-import type { PublicOrderStatusView, PublicPaymentLinkCheckoutView } from '../public-checkout.js';
-import { renderPublicOrderStatusHtml, renderPublicPaymentLinkCheckoutHtml, toLegacyPublicOrderStatusResponse } from '../public-checkout.js';
+import type { PublicDepositStatusView, PublicOrderStatusView, PublicPaymentLinkCheckoutView } from '../public-checkout.js';
+import { renderPublicDepositStatusHtml, renderPublicOrderStatusHtml, renderPublicPaymentLinkCheckoutHtml, toLegacyPublicOrderStatusResponse } from '../public-checkout.js';
 
 export interface CloudHonoPublicCheckoutAdapter {
   getOrderStatus(input: { orderId: string }): Promise<PublicOrderStatusView | null> | PublicOrderStatusView | null;
   getPaymentLinkCheckout(input: { slug: string; requestOrigin: string }): Promise<PublicPaymentLinkCheckoutView | null> | PublicPaymentLinkCheckoutView | null;
   createPaymentLinkOrder?(input: { slug: string; requestOrigin: string; body: Record<string, unknown> }): Promise<PublicOrderStatusView | null> | PublicOrderStatusView | null;
+  getPaymentLinkPreview?(input: { paymentLinkId: string; token?: string; viewport?: string; requestOrigin: string }): Promise<PublicPaymentLinkCheckoutView | null> | PublicPaymentLinkCheckoutView | null;
+  getDepositStatus?(input: { address: string; requestOrigin: string }): Promise<PublicDepositStatusView | null> | PublicDepositStatusView | null;
 }
 
 export interface CloudHonoAdapterOptions extends CloudRouteHandlersOptions {
@@ -83,6 +85,14 @@ export function createCloudHonoApp(options: CloudHonoAdapterOptions): CloudHonoA
       }
     });
 
+    app.get('/checkout/preview/:paymentLinkId', async (c) => {
+      if (!options.publicCheckout!.getPaymentLinkPreview) return c.json({ success: false, error: 'Checkout preview is not configured' }, 501);
+      const preview = await options.publicCheckout!.getPaymentLinkPreview({ paymentLinkId: c.req.param('paymentLinkId'), token: c.req.query('token'), viewport: c.req.query('viewport'), requestOrigin: requestOrigin(c) });
+      if (!preview) return c.json({ success: false, error: 'Payment Link Preview Not Found', message: 'Preview token is invalid or the payment link does not exist.' }, 404);
+      if (wantsHtml(c)) return c.html(renderPublicPaymentLinkCheckoutHtml(preview));
+      return c.json({ success: true, data: preview });
+    });
+
     app.get('/api/order-status/:orderId', async (c) => {
       const status = await options.publicCheckout!.getOrderStatus({ orderId: c.req.param('orderId') });
       if (!status) return c.json({ success: false, error: 'Order not found', message: `Order with ID "${c.req.param('orderId')}" does not exist` }, 404);
@@ -94,6 +104,13 @@ export function createCloudHonoApp(options: CloudHonoAdapterOptions): CloudHonoA
       const status = await options.publicCheckout!.getOrderStatus({ orderId: c.req.param('orderId') });
       if (!status) return c.html('<!doctype html><title>Order not found</title><h1>Order not found</h1>', 404);
       return c.html(renderPublicOrderStatusHtml(status));
+    });
+
+    app.get('/pay/deposit/:address', async (c) => {
+      if (!options.publicCheckout!.getDepositStatus) return c.html('<!doctype html><title>Deposit not configured</title><h1>Deposit page is not configured</h1>', 501);
+      const deposit = await options.publicCheckout!.getDepositStatus({ address: c.req.param('address'), requestOrigin: requestOrigin(c) });
+      if (!deposit) return c.html('<!doctype html><title>Deposit not found</title><h1>Deposit not found</h1>', 404);
+      return c.html(renderPublicDepositStatusHtml(deposit));
     });
 
     app.get('/checkout/:slug', async (c) => {

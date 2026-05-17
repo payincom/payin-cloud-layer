@@ -1,5 +1,6 @@
 import { createCloudOrderStatusSummary, type CloudOrder, type CloudOrderStatusSummary } from './orders.js';
 import { createPublicPaymentLinkView, type CloudPaymentLink, type PublicPaymentLinkView } from './payment-links.js';
+import type { CloudAddressPoolEntry } from './address-pool.js';
 
 export interface PublicOrderStatusTransferInput {
   transactionHash?: string | null;
@@ -47,6 +48,16 @@ export interface PublicPaymentLinkCheckoutView extends PublicPaymentLinkView {
   apiBaseUrl: string;
   orderBaseUrl: string;
   shareUrl: string;
+}
+
+export interface PublicDepositStatusView {
+  address: string;
+  protocol: string;
+  state: string;
+  depositReference?: string;
+  orderId?: string;
+  paymentUrl: string;
+  metadata?: Record<string, unknown>;
 }
 
 export function createPublicOrderStatusView(input: PublicOrderStatusInput): PublicOrderStatusView {
@@ -143,6 +154,40 @@ export function renderPublicPaymentLinkCheckoutHtml(view: PublicPaymentLinkCheck
         <p class="muted">Share URL: <span class="mono">${escapeHtml(view.shareUrl)}</span></p>
       </section>
       <script type="application/json" id="payin-checkout-data">${escapeHtml(JSON.stringify({ success: true, data: view }))}</script>
+    </main>
+  `);
+}
+
+export function createPublicDepositStatusView(entry: CloudAddressPoolEntry, options: { requestOrigin: string }): PublicDepositStatusView {
+  const requestOrigin = options.requestOrigin.replace(/\/+$/, '');
+  return {
+    address: entry.address,
+    protocol: entry.protocol,
+    state: entry.state,
+    depositReference: entry.depositReference,
+    orderId: entry.orderId,
+    paymentUrl: `${requestOrigin}/pay/deposit/${encodeURIComponent(entry.address)}`,
+    metadata: entry.metadata,
+  };
+}
+
+export function renderPublicDepositStatusHtml(view: PublicDepositStatusView): string {
+  const title = `Deposit ${view.depositReference ?? view.address}`;
+  return htmlDocument(title, `
+    <main class="payin-checkout payin-deposit-status">
+      <section class="card">
+        <p class="eyebrow">Deposit payment</p>
+        <h1>${escapeHtml(title)}</h1>
+        <p class="status-pill">${escapeHtml(view.state)}</p>
+        <dl class="details">
+          <div><dt>Address</dt><dd class="mono">${escapeHtml(view.address)}</dd></div>
+          <div><dt>Protocol</dt><dd>${escapeHtml(view.protocol)}</dd></div>
+          ${view.depositReference ? `<div><dt>Reference</dt><dd>${escapeHtml(view.depositReference)}</dd></div>` : ''}
+          ${view.orderId ? `<div><dt>Order</dt><dd>${escapeHtml(view.orderId)}</dd></div>` : ''}
+        </dl>
+        <p class="muted">Send only supported assets on the selected network to this address.</p>
+      </section>
+      <script type="application/json" id="payin-deposit-status-data">${escapeHtml(JSON.stringify({ success: true, data: view }))}</script>
     </main>
   `);
 }

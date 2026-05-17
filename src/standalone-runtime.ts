@@ -22,6 +22,7 @@ import {
   StaticEntitlementProvider,
   SubscriptionBillingLimitEnforcer,
   createCloudHonoApp,
+  createPublicDepositStatusView,
   createPublicOrderStatusView,
   createPublicPaymentLinkCheckoutView,
   createRuntimeReadinessReport,
@@ -153,6 +154,19 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions = {}):
           },
         });
         return createPublicOrderStatusView({ order });
+      },
+      getPaymentLinkPreview: async ({ paymentLinkId, token, requestOrigin }) => {
+        const links = await paymentLinks.list(tenant) as NormalizedCloudPaymentLink[];
+        const link = links.find((candidate) => candidate.id === paymentLinkId) ?? null;
+        if (!link) return null;
+        const expectedToken = typeof link.metadata?.previewToken === 'string' ? link.metadata.previewToken : process.env.PAYIN_CHECKOUT_PREVIEW_TOKEN;
+        if (expectedToken && token !== expectedToken) return null;
+        return createPublicPaymentLinkCheckoutView(link, { requestOrigin });
+      },
+      getDepositStatus: async ({ address, requestOrigin }) => {
+        const addresses = await addressPool.list(tenant);
+        const entry = addresses.find((candidate) => candidate.address.toLowerCase() === address.toLowerCase()) ?? null;
+        return entry ? createPublicDepositStatusView(entry, { requestOrigin }) : null;
       },
     },
   });

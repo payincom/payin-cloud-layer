@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   createPublicOrderStatusView,
   createPublicPaymentLinkCheckoutView,
+  createPublicDepositStatusView,
+  renderPublicDepositStatusHtml,
   renderPublicOrderStatusHtml,
   renderPublicPaymentLinkCheckoutHtml,
   toLegacyPublicOrderStatusResponse,
@@ -120,5 +122,25 @@ describe('public checkout contracts', () => {
     expect(renderPublicOrderStatusHtml(status)).toContain('<!doctype html>');
     expect(renderPublicOrderStatusHtml(status)).toContain('id="payin-order-status-data"');
     expect(renderPublicOrderStatusHtml(status)).toContain('ref-html');
+  });
+
+  it('builds and renders public deposit status views', () => {
+    const deposit = createPublicDepositStatusView({
+      tenant,
+      address: '0x2222222222222222222222222222222222222222',
+      protocol: 'evm',
+      state: 'bound',
+      depositReference: 'dep-html',
+      orderId: 'order-html',
+    }, { requestOrigin: 'https://pay.example/' });
+
+    expect(deposit).toMatchObject({
+      address: '0x2222222222222222222222222222222222222222',
+      protocol: 'evm',
+      state: 'bound',
+      depositReference: 'dep-html',
+      paymentUrl: 'https://pay.example/pay/deposit/0x2222222222222222222222222222222222222222',
+    });
+    expect(renderPublicDepositStatusHtml(deposit)).toContain('id="payin-deposit-status-data"');
   });
 });

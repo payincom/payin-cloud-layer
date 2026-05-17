@@ -82,11 +82,14 @@ export type {
 export {
   createPublicOrderStatusView,
   createPublicPaymentLinkCheckoutView,
+  createPublicDepositStatusView,
   renderPublicOrderStatusHtml,
   renderPublicPaymentLinkCheckoutHtml,
+  renderPublicDepositStatusHtml,
   toLegacyPublicOrderStatusResponse,
 } from './public-checkout.js';
 export type {
+  PublicDepositStatusView,
   PublicOrderStatusInput,
   PublicOrderStatusTransferInput,
   PublicOrderStatusView,

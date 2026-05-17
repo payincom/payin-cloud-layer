@@ -48,9 +48,17 @@ const checkoutHtml = await fetch(`${cleanBase}/checkout/${slug}`, { headers: { a
 const checkoutHtmlText = await checkoutHtml.text();
 expect(checkoutHtml.ok, 'public checkout HTML returns success', { status: checkoutHtml.status, body: checkoutHtmlText });
 expect(checkoutHtmlText.includes('id="payin-checkout-data"'), 'public checkout HTML embeds JSON data');
+const previewHtml = await fetch(`${cleanBase}/checkout/preview/${link.data.id}`, { headers: { accept: 'text/html' } });
+const previewHtmlText = await previewHtml.text();
+expect(previewHtml.ok, 'checkout preview HTML returns success', { status: previewHtml.status, body: previewHtmlText });
+expect(previewHtmlText.includes('id="payin-checkout-data"'), 'checkout preview HTML embeds JSON data');
 const address = `0x${suffix.padStart(40, '1').slice(0, 40)}`;
 const imported = await request('/api/v1/address-pool/import', { method: 'POST', headers: authHeaders, body: JSON.stringify({ protocol: 'evm', addresses: [{ address }] }) });
 expect(imported?.data?.[0]?.address === address, 'address imported', imported);
+const depositHtml = await fetch(`${cleanBase}/pay/deposit/${address}`, { headers: { accept: 'text/html' } });
+const depositHtmlText = await depositHtml.text();
+expect(depositHtml.ok, 'deposit HTML returns success', { status: depositHtml.status, body: depositHtmlText });
+expect(depositHtmlText.includes('id="payin-deposit-status-data"'), 'deposit HTML embeds JSON data');
 const summary = await request('/api/v1/address-pool/summary', { headers: authHeaders });
 expect(summary?.data?.hasAddresses === true, 'address summary has addresses', summary);
 const endpointId = `wh-${suffix}`;

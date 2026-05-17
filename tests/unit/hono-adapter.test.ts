@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createCloudHonoApp, createPublicOrderStatusView, createPublicPaymentLinkCheckoutView, createRuntimeReadinessReport } from '../../src/index.js';
+import { createCloudHonoApp, createPublicDepositStatusView, createPublicOrderStatusView, createPublicPaymentLinkCheckoutView, createRuntimeReadinessReport } from '../../src/index.js';
 
 
 async function responseJson(response: Response | Promise<Response>): Promise<unknown> {
@@ -91,6 +91,12 @@ describe('Cloud Hono adapter', () => {
         createPaymentLinkOrder: async ({ slug }) => slug === 'public-checkout'
           ? createPublicOrderStatusView({ order: { id: 'order-from-link', tenant: { organizationId: 'org-public' }, orderReference: 'ref-from-link', amount: '10', currency: 'USDC', chainId: 'ethereum-sepolia', status: 'pending', confirmedReceived: '0' } })
           : null,
+        getPaymentLinkPreview: async ({ paymentLinkId, token, requestOrigin }) => paymentLinkId === 'plink-public' && token === 'preview-token'
+          ? createPublicPaymentLinkCheckoutView({ id: 'plink-public', tenant: { organizationId: 'org-public' }, title: 'Preview', amount: '10', currency: 'USDC', chainOptions: ['ethereum-sepolia'], status: 'draft', slug: 'preview-checkout' }, { requestOrigin })
+          : null,
+        getDepositStatus: async ({ address, requestOrigin }) => address === '0xdeposit'
+          ? createPublicDepositStatusView({ tenant: { organizationId: 'org-public' }, address, protocol: 'evm', state: 'bound', depositReference: 'dep-public' }, { requestOrigin })
+          : null,
       },
     });
 
@@ -106,6 +112,12 @@ describe('Cloud Hono adapter', () => {
     const orderHtml = await app.request('https://pay.example/pay/order/order-public', { headers: { accept: 'text/html' } });
     expect(orderHtml.headers.get('content-type')).toContain('text/html');
     await expect(orderHtml.text()).resolves.toContain('id="payin-order-status-data"');
+    const previewHtml = await app.request('https://pay.example/checkout/preview/plink-public?token=preview-token&viewport=mobile', { headers: { accept: 'text/html' } });
+    expect(previewHtml.status).toBe(200);
+    await expect(previewHtml.text()).resolves.toContain('id="payin-checkout-data"');
+    const depositHtml = await app.request('https://pay.example/pay/deposit/0xdeposit', { headers: { accept: 'text/html' } });
+    expect(depositHtml.status).toBe(200);
+    await expect(depositHtml.text()).resolves.toContain('id="payin-deposit-status-data"');
     await expect(responseStatus(app.request('https://pay.example/checkout/missing'))).resolves.toBe(404);
   });
 
