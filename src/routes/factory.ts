@@ -24,7 +24,7 @@ export interface CloudRouteHandlersOptions {
     orders: Pick<CloudOrderService, 'createOrder' | 'getOrder' | 'listOrders'>;
     paymentLinks: Pick<CloudPaymentLinkService, 'createPaymentLink' | 'publishPaymentLink' | 'getPaymentLink' | 'listPaymentLinks'>;
     readiness?: CloudRuntimeReadinessService;
-    webhooks: Pick<CloudWebhookService, 'upsertEndpoint' | 'createTestDelivery'>;
+    webhooks: Pick<CloudWebhookService, 'upsertEndpoint' | 'createTestDelivery' | 'listEndpoints' | 'deleteEndpoint'>;
   };
 }
 

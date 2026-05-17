@@ -74,8 +74,12 @@ expect(summary?.data?.hasAddresses === true, 'address summary has addresses', su
 const endpointId = `wh-${suffix}`;
 const endpoint = await request('/api/v1/webhooks/endpoints', { method: 'POST', headers: authHeaders, body: JSON.stringify({ id: endpointId, url: 'https://merchant.example/webhooks/payin', eventTypes: ['webhook.tested'], signingSecretRef: 'secret://deployed-e2e/webhook', enabled: true }) });
 expect(endpoint?.endpoint?.id === endpointId, 'webhook endpoint upserted', endpoint);
+const webhookEndpoints = await request('/api/v1/webhooks/endpoints', { headers: authHeaders });
+expect(webhookEndpoints?.endpoints?.some((candidate) => candidate.id === endpointId), 'webhook endpoint listed', webhookEndpoints);
 const webhookTest = await request(`/api/v1/webhooks/endpoints/${endpointId}/test`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ eventId: `evt-${suffix}` }) });
 expect(webhookTest?.data?.endpointId === endpointId, 'webhook tested', webhookTest);
+const deleteWebhookResponse = await fetch(`${cleanBase}/api/v1/webhooks/endpoints/${endpointId}`, { method: 'DELETE', headers: authHeaders });
+expect(deleteWebhookResponse.status === 204, 'webhook endpoint deleted', { status: deleteWebhookResponse.status, body: await deleteWebhookResponse.text() });
 const childApiKey = await request('/api/v1/organizations/org-cloud-layer-sandbox/api-keys', { method: 'POST', headers: authHeaders, body: JSON.stringify({ name: `Deployed E2E ${suffix}`, role: 'member', capabilities: ['orders:create'] }) });
 expect(/^pk_live_/.test(childApiKey?.apiKey ?? ''), 'child api key returned', childApiKey);
 const smoke = await request('/api/v1/smoke', { method: 'POST', headers: authHeaders });

@@ -3,6 +3,7 @@ import type { CloudTenantContext } from '../../context.js';
 
 export interface MutableCloudWebhookEndpointRepository extends CloudWebhookEndpointRepository {
   upsert(input: CloudWebhookEndpointInput): Promise<CloudWebhookEndpoint> | CloudWebhookEndpoint;
+  deleteForTenant?(endpointId: string, tenant: CloudTenantContext): Promise<boolean> | boolean;
 }
 
 export class InMemoryCloudWebhookRepository implements MutableCloudWebhookEndpointRepository {
@@ -21,5 +22,11 @@ export class InMemoryCloudWebhookRepository implements MutableCloudWebhookEndpoi
   async getForTenant(endpointId: string, tenant: CloudTenantContext): Promise<CloudWebhookEndpoint | null> {
     const endpoint = this.records.get(endpointId);
     return endpoint?.tenant.organizationId === tenant.organizationId ? endpoint : null;
+  }
+
+  async deleteForTenant(endpointId: string, tenant: CloudTenantContext): Promise<boolean> {
+    const endpoint = await this.getForTenant(endpointId, tenant);
+    if (!endpoint) return false;
+    return this.records.delete(endpointId);
   }
 }

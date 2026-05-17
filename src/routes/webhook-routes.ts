@@ -3,7 +3,7 @@ import { extractBearerApiKey, toCloudRouteErrorResponse, type CloudRouteResponse
 import type { CloudRouteWithParams } from './payment-link-routes.js';
 
 export interface CloudWebhookRouteHandlersOptions {
-  webhooks: Pick<CloudWebhookService, 'upsertEndpoint' | 'createTestDelivery'>;
+  webhooks: Pick<CloudWebhookService, 'upsertEndpoint' | 'createTestDelivery' | 'listEndpoints' | 'deleteEndpoint'>;
 }
 
 export interface CloudWebhookEndpointUpsertRouteBody {
@@ -20,6 +20,16 @@ export interface CloudWebhookTestDeliveryRouteBody {
 
 export function createCloudWebhookRouteHandlers(options: CloudWebhookRouteHandlersOptions) {
   return {
+    async listEndpoints(request: CloudRouteWithParams<void, Record<string, string>>): Promise<CloudRouteResponse> {
+      try {
+        const apiKey = extractBearerApiKey(request.headers);
+        const endpoints = await options.webhooks.listEndpoints({ apiKey });
+        return { status: 200, body: { data: endpoints } };
+      } catch (error) {
+        return toCloudRouteErrorResponse(error);
+      }
+    },
+
     async upsertEndpoint(request: CloudRouteWithParams<CloudWebhookEndpointUpsertRouteBody, { endpointId: string }>): Promise<CloudRouteResponse> {
       try {
         const apiKey = extractBearerApiKey(request.headers);
@@ -47,6 +57,16 @@ export function createCloudWebhookRouteHandlers(options: CloudWebhookRouteHandle
           eventId: request.body.eventId,
         });
         return { status: 200, body: { data: delivery } };
+      } catch (error) {
+        return toCloudRouteErrorResponse(error);
+      }
+    },
+
+    async deleteEndpoint(request: CloudRouteWithParams<void, { endpointId: string }>): Promise<CloudRouteResponse> {
+      try {
+        const apiKey = extractBearerApiKey(request.headers);
+        await options.webhooks.deleteEndpoint({ apiKey, endpointId: request.params.endpointId });
+        return { status: 204, body: {} };
       } catch (error) {
         return toCloudRouteErrorResponse(error);
       }

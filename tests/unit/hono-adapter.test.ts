@@ -43,6 +43,8 @@ describe('Cloud Hono adapter', () => {
         webhooks: {
           upsertEndpoint: async (input: unknown) => { calls.push(['upsertEndpoint', input]); return { id: 'wh-hono' }; },
           createTestDelivery: async () => ({ endpointId: 'wh-hono' }),
+          listEndpoints: async () => [{ id: 'wh-hono' }],
+          deleteEndpoint: async (input: unknown) => { calls.push(['deleteEndpoint', input]); return { id: 'wh-hono', deleted: true }; },
         },
         apiKeys: {
           createApiKey: async () => ({ presentedKey: 'pk_created', apiKey: { id: 'key-hono' } }),
@@ -66,11 +68,14 @@ describe('Cloud Hono adapter', () => {
     await expect(responseJson(app.request('/api/v1/config', { headers: { authorization: 'Bearer pk_hono' } }))).resolves.toMatchObject({ config: { tenant: { organizationId: 'org-hono' } } });
     await expect(responseJson(app.request('/api/v1/address-pool/addresses?protocol=evm', { headers: { authorization: 'Bearer pk_hono' } }))).resolves.toEqual({ data: [{ address: '0xabc', protocol: 'evm', state: 'idle' }] });
     await expect(responseJson(app.request('/api/v1/webhooks/endpoints', jsonRequest('POST', { id: 'wh-hono', url: 'https://merchant.example/webhook', eventTypes: ['order.created'], signingSecretRef: 'secret://wh', enabled: true })))).resolves.toEqual({ endpoint: { id: 'wh-hono' } });
+    await expect(responseJson(app.request('/api/v1/webhooks/endpoints', { headers: { authorization: 'Bearer pk_hono' } }))).resolves.toEqual({ endpoints: [{ id: 'wh-hono' }] });
+    await expect(responseStatus(app.request('/api/v1/webhooks/endpoints/wh-hono', { method: 'DELETE', headers: { authorization: 'Bearer pk_hono' } }))).resolves.toBe(204);
     await expect(responseStatus(app.request('/api/v1/smoke', jsonRequest('POST')))).resolves.toBe(200);
 
     expect(calls).toContainEqual(['listOrders', { apiKey: 'pk_hono', status: 'pending' }]);
     expect(calls).toContainEqual(['listAddresses', { apiKey: 'pk_hono', protocol: 'evm', state: undefined }]);
     expect(calls).toContainEqual(['upsertEndpoint', { apiKey: 'pk_hono', id: 'wh-hono', url: 'https://merchant.example/webhook', eventTypes: ['order.created'], signingSecretRef: 'secret://wh', enabled: true, metadata: undefined }]);
+    expect(calls).toContainEqual(['deleteEndpoint', { apiKey: 'pk_hono', endpointId: 'wh-hono' }]);
   });
 
   it('binds public checkout and order-status contracts to HTTP paths', async () => {

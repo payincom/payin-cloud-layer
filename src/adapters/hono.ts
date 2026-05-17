@@ -58,8 +58,10 @@ export function createCloudHonoApp(options: CloudHonoAdapterOptions): CloudHonoA
     const endpointId = typeof body.id === 'string' ? body.id : `wh_${Date.now()}`;
     return respond(c, await routes.webhooks.upsertEndpoint({ headers: headers(c), body: body as never, params: { endpointId } }), legacy, 'webhookEndpoint');
   });
+  app.get('/api/v1/webhooks/endpoints', async (c) => respond(c, await routes.webhooks.listEndpoints({ headers: headers(c), body: undefined, params: {} }), legacy, 'webhookEndpoints'));
   app.put('/api/v1/webhooks/endpoints/:endpointId', async (c) => respond(c, await routes.webhooks.upsertEndpoint({ headers: headers(c), body: await jsonBody(c) as never, params: { endpointId: c.req.param('endpointId') } }), legacy, 'webhookEndpoint'));
   app.post('/api/v1/webhooks/endpoints/:endpointId/test', async (c) => respond(c, await routes.webhooks.createTestDelivery({ headers: headers(c), body: await jsonBody(c) as never, params: { endpointId: c.req.param('endpointId') } }), legacy, 'data'));
+  app.delete('/api/v1/webhooks/endpoints/:endpointId', async (c) => respond(c, await routes.webhooks.deleteEndpoint({ headers: headers(c), body: undefined, params: { endpointId: c.req.param('endpointId') } }), legacy, 'empty'));
 
   if (routes.readiness) {
     app.get('/api/v1/readiness', async (c) => respond(c, await routes.readiness!.getReadiness({ headers: headers(c), body: undefined }), legacy, 'data'));
@@ -156,6 +158,7 @@ export function createCloudHonoApp(options: CloudHonoAdapterOptions): CloudHonoA
 
 async function respond(c: { json: (body: unknown, status?: never) => Response }, response: CloudRouteResponse, legacy: boolean, envelope: LegacyCloudResponseEnvelope): Promise<Response> {
   const adapted = legacy ? toLegacyCloudRouteResponse(response, envelope, { pagination: paginationFromBody(response.body) }) : response;
+  if (adapted.status === 204) return new Response(null, { status: 204 });
   return c.json(adapted.body, adapted.status as never);
 }
 

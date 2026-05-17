@@ -146,6 +146,8 @@ export type {
 } from './services/payment-link-service.js';
 export { CloudWebhookService } from './services/webhook-service.js';
 export type {
+  CloudWebhookEndpointDeleteServiceRequest,
+  CloudWebhookEndpointListServiceRequest,
   CloudWebhookEndpointUpsertServiceRequest,
   CloudWebhookServiceOptions,
   CloudWebhookTestDeliveryServiceRequest,

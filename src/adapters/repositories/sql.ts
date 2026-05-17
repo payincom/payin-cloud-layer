@@ -494,6 +494,15 @@ export class SqlCloudWebhookRepository implements MutableCloudWebhookEndpointRep
     );
     return result.rows[0] ? mapWebhookRow(result.rows[0], tenant) : null;
   }
+
+  async deleteForTenant(endpointId: string, tenant: CloudTenantContext): Promise<boolean> {
+    const tenantWhere = createSqlTenantWhereClause(tenant, 2);
+    const result = await this.db.query<Record<string, unknown>>(
+      `DELETE FROM ${this.tableName} WHERE id = $1 AND ${tenantWhere.clause} RETURNING id`,
+      [endpointId, ...tenantWhere.values]
+    );
+    return result.rows.length > 0;
+  }
 }
 
 export class SqlCloudOrderRepository implements CloudOrderRepository {

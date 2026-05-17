@@ -40,6 +40,16 @@ export interface CloudWebhookTestDeliveryServiceRequest {
   now?: Date;
 }
 
+export interface CloudWebhookEndpointListServiceRequest {
+  apiKey: string;
+}
+
+export interface CloudWebhookEndpointDeleteServiceRequest {
+  apiKey: string;
+  endpointId: string;
+  now?: Date;
+}
+
 export class CloudWebhookService {
   constructor(private readonly options: CloudWebhookServiceOptions) {}
 
@@ -116,6 +126,26 @@ export class CloudWebhookService {
     }));
 
     return delivery;
+  }
+
+  async listEndpoints(request: CloudWebhookEndpointListServiceRequest): Promise<CloudWebhookEndpoint[]> {
+    const scope = await this.authenticateAndAuthorize(request.apiKey, 'webhooks:read');
+    return this.options.webhooks.listForTenant(scope.tenant) as Promise<CloudWebhookEndpoint[]>;
+  }
+
+  async deleteEndpoint(request: CloudWebhookEndpointDeleteServiceRequest): Promise<{ id: string; deleted: true }> {
+    const scope = await this.authenticateAndAuthorize(request.apiKey, 'config:update');
+    const deleted = await this.options.webhooks.deleteForTenant?.(request.endpointId, scope.tenant);
+    if (!deleted) throw new Error(`Webhook endpoint not found: ${request.endpointId}`);
+    await this.options.auditTrail.record(createCloudAuditEvent({
+      tenant: scope.tenant,
+      action: 'config:update',
+      actor: { type: 'api_key', id: scope.apiKeyId },
+      subjectId: request.endpointId,
+      occurredAt: request.now,
+      metadata: { resource: 'webhook_endpoint', deleted: true },
+    }));
+    return { id: request.endpointId, deleted: true };
   }
 
   private async authenticateAndAuthorize(apiKey: string, capability: Extract<CloudCapability, 'config:update' | 'webhooks:test' | 'webhooks:read'>): Promise<CloudApiKeyScope> {
