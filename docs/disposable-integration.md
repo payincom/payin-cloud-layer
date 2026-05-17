@@ -31,6 +31,6 @@ The repository has SQL adapter contracts against `SqlQueryRecorder` and a gated 
 
 Default `npm run verify` does not require a database. It runs the integration file in disabled mode and documents the opt-in gate.
 
-Manual GitHub workflow `Disposable Integration` starts a PostgreSQL 16 service, sets `PAYIN_CLOUD_LAYER_INTEGRATION=1`, applies the minimal schema, and exercises tenant resolver plus organization/member/API-key/hosted-config/order/payment-link/address-pool/webhook/notification-delivery/usage/audit SQL adapters.
+Manual GitHub workflow `Disposable Integration` starts a PostgreSQL 16 service, sets `PAYIN_CLOUD_LAYER_INTEGRATION=1`, applies the minimal schema, and exercises tenant resolver plus organization/member/API-key/subscription/hosted-config/order/payment-link/address-pool/webhook/notification-delivery/usage/audit SQL adapters.
 
-Verified workflow run after hosted config and notification delivery persistence expansion: `https://github.com/payincom/payin-cloud-layer/actions/runs/25978252043`.
+Verified workflow run after subscription persistence expansion: `https://github.com/payincom/payin-cloud-layer/actions/runs/25979345470`.

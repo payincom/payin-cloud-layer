@@ -15,7 +15,7 @@ Status legend:
 | Organization/member management | `packages/auth/src/organization-manager.ts`, `apps/api/src/routes/organizations.ts` | `src/organization.ts`, `src/services/organization-service.ts`, `src/routes/organization-routes.ts` | contract + service + route + SQL + disposable integration tests | contracted / service-covered / route-covered / SQL-verified |
 | API key auth/scope | `api_keys`, auth middleware | `src/api-key.ts`, `src/services/api-key-service.ts`, `src/routes/api-key-routes.ts` | `tests/unit/api-key.test.ts`, `tests/unit/cloud-api-key-service.test.ts`, `tests/unit/api-key-route-harness.test.ts`, SQL + disposable integration | contracted / service-covered / route-covered / SQL-verified |
 | Hosted tenant config | config-management routes | `src/hosted-config.ts`, `src/services/hosted-config-service.ts`, `src/routes/hosted-config-routes.ts`, `SqlHostedConfigRepository` | contract + service + route + SQL + disposable integration tests | contracted / service-covered / route-covered / SQL-verified |
-| Billing usage metering / subscription enforcement | hosted billing semantics | `src/usage-meter.ts`, `src/subscription.ts`, `src/hooks.ts` | billing usage + subscription enforcement tests | contracted / entitlement-covered / adapter-pending |
+| Billing usage metering / subscription enforcement | hosted billing semantics | `src/usage-meter.ts`, `src/subscription.ts`, `src/hooks.ts`, `SqlCloudSubscriptionRepository`, `SqlCloudUsageMeter` | billing usage + period aggregation + subscription enforcement + SQL + disposable integration tests | contracted / entitlement-covered / SQL-verified |
 | Audit/risk/support | `packages/auth/src/middleware/audit-middleware.ts` | `src/audit-risk.ts` | `tests/unit/audit-risk-contract.test.ts` | contracted / adapter-pending |
 | Orders | `orders`, multi-tenant API tests | `src/orders.ts`, `src/cloud-manager.ts`, `src/services/order-service.ts` | `tests/unit/order-contract.test.ts`, `tests/unit/cloud-manager.test.ts`, `tests/unit/cloud-order-service.test.ts` | contracted / service-covered / adapter-pending |
 | Payment links | `apps/api/tests/payment-links-api.test.ts` | `src/payment-links.ts`, `src/cloud-manager.ts`, `src/services/payment-link-service.ts` | `tests/unit/payment-link-contract.test.ts`, `tests/unit/cloud-payment-link-service.test.ts` | contracted / service-covered / adapter-pending |
@@ -28,7 +28,7 @@ Status legend:
 
 ## Current verification gate
 
-`npm run verify` must pass before every push. Latest default verification after webhook worker + subscription enforcement expansion: 52 test files / 182 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution for tenant/organization/member/API-key/hosted-config/order/payment-link/address-pool/webhook/notification-delivery/usage/audit adapters.
+`npm run verify` must pass before every push. Latest default verification after SQL subscription, billing-period aggregation, and legacy route compatibility expansion: 55 test files / 190 passed / 1 skipped. Manual `Disposable Integration` workflow has verified PostgreSQL service execution for tenant/organization/member/API-key/subscription/hosted-config/order/payment-link/address-pool/webhook/notification-delivery/usage/audit adapters.
 
 ## Reference inventory snapshot
 
@@ -47,6 +47,6 @@ Cloud API route extraction:
 
 - compare old route request/response shapes against the framework-neutral route harnesses
 - add framework adapter examples for Hono/Express/Fastify if needed
-- add SQL subscription repository + disposable integration
-- add usage aggregation for billing periods
-- compare old Cloud route request/response shapes against framework-neutral route harnesses
+- expand legacy route compatibility contracts beyond org/API-key/member into payment links, orders, hosted config, and webhooks
+- add SQL-backed billing limit enforcement using aggregated usage + subscription limits
+- add route-level compatibility adapter tests for old Cloud envelopes where needed
