@@ -11,6 +11,8 @@ export type {
   CloudOrganizationUpdateMemberRouteBody,
   CloudOrganizationUpdateRouteBody,
 } from './routes/organization-routes.js';
+export { createCloudHostedConfigRouteHandlers } from './routes/hosted-config-routes.js';
+export type { CloudHostedConfigRouteHandlersOptions, CloudHostedConfigUpdateRouteBody } from './routes/hosted-config-routes.js';
 export { createCloudOrderRouteHandlers } from './routes/order-routes.js';
 export type { CloudOrderCreateRouteBody, CloudOrderRouteHandlersOptions } from './routes/order-routes.js';
 export { createCloudPaymentLinkRouteHandlers } from './routes/payment-link-routes.js';
