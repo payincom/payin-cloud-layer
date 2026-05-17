@@ -2,6 +2,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import {
   PgSqlExecutor,
   SqlCloudAddressPoolRepository,
+  SqlCloudApiKeyRepository,
   SqlCloudAuditTrail,
   SqlCloudOrderRepository,
   SqlCloudPaymentLinkRepository,
@@ -43,6 +44,21 @@ describe.runIf(enabled)('disposable database integration', () => {
        ON CONFLICT (organization_id, user_id) DO UPDATE SET role = EXCLUDED.role, status = EXCLUDED.status`,
       ['org-integration', 'user-integration', 'admin', 'active']
     );
+
+    const apiKeys = new SqlCloudApiKeyRepository(executor);
+    await apiKeys.create({
+      presentedKey: 'pk_live_integration_secret',
+      tenant: { organizationId: 'org-integration' },
+      apiKey: { id: 'key-integration', keyPrefix: 'pk_live_', name: 'Integration API key', organizationId: 'org-integration', userId: 'user-integration', role: 'admin', createdAt: new Date('2026-05-16T23:59:00.000Z') },
+      membership: { role: 'admin', status: 'active' },
+    });
+    await expect(apiKeys.listForTenant({ organizationId: 'org-integration' })).resolves.toMatchObject([
+      { id: 'key-integration', organizationId: 'org-integration', keyPrefix: 'pk_live_' },
+    ]);
+    await expect(apiKeys.findByPresentedKey('pk_live_integration_secret')).resolves.toMatchObject({
+      apiKey: { id: 'key-integration', organizationId: 'org-integration' },
+      tenant: { organizationId: 'org-integration' },
+    });
 
     const resolver = new SqlCloudTenantResolver(executor);
     await expect(resolver.resolveForUser('user-integration', 'org-integration')).resolves.toMatchObject({
@@ -115,6 +131,11 @@ describe.runIf(enabled)('disposable database integration', () => {
 
     const audit = new SqlCloudAuditTrail(executor);
     await audit.record(createCloudAuditEvent({ tenant: { organizationId: 'org-integration' }, action: 'orders:create', actor: { type: 'api_key', id: 'key-integration' }, subjectId: 'order-integration' }));
+
+    await expect(apiKeys.revokeForTenant('key-integration', { organizationId: 'org-integration' }, new Date('2026-05-17T00:00:00.000Z'))).resolves.toMatchObject({
+      id: 'key-integration',
+      revokedAt: new Date('2026-05-17T00:00:00.000Z'),
+    });
   });
 });
 
