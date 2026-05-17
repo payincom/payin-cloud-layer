@@ -39,7 +39,7 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 - [ ] Full old checkout SSR/React bundle parity, including exact UI assets, QR rendering, wallet UX, timers, disabled/draft/sold-out states, and redirect UX.
 - [x] Minimal `GET /pay/deposit/:address` deposit payment page shell.
 - [x] Minimal `GET /checkout/preview/:id?token=...&viewport=...` preview flow.
-- [ ] Legacy field aliases such as `redirect_url` in addition to `redirectUrl` where old clients depend on snake_case.
+- [x] Legacy checkout/order aliases for `redirect_url`, `buyer_email`, `chain_id`, `order_reference`, `chain_options`, and `inventory_total`.
 
 ### P0 — Deposits/transfers/chains/tokens
 
@@ -78,6 +78,6 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 
 - Railway sandbox: `payincloudsandbox` / `cloud-runtime`
 - URL: `https://cloud-runtime-production-13e5.up.railway.app`
-- Latest managed-PostgreSQL public discovery/checkout/order/deposit/preview/transfer/webhook-delivery/audit/organization/hardening E2E passed with slug `deployed-e2e-mp9ma02g`.
+- Latest managed-PostgreSQL public discovery/checkout/order/deposit/preview/transfer/webhook-delivery/audit/organization/hardening/legacy-alias E2E passed with slug `deployed-e2e-mp9merqz`.
 - Latest persisted state verified after Railway restart: order `order-mp9l9sq5-yrndogpu` and payment-link slug `deployed-e2e-mp9l9rom` remained readable.
-- Latest commit implementing organization runtime routes: `0fdcc51`.
+- Latest commit implementing legacy checkout alias compatibility: `8cce459`.
