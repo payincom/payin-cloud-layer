@@ -3,6 +3,7 @@ import { normalizeCloudPaymentLink, type CloudPaymentLink, type NormalizedCloudP
 import { normalizeCloudAddressPoolEntry, type CloudAddressPoolEntry, type NormalizedCloudAddressPoolEntry } from '../../address-pool.js';
 import { normalizeCloudWebhookEndpoint, type CloudWebhookEndpoint, type CloudWebhookEndpointInput } from '../../webhooks.js';
 import { normalizeCloudTenantContext, type CloudTenantContext } from '../../context.js';
+import { normalizeHostedRuntimeConfig, type HostedConfigRepository, type HostedRuntimeConfig, type HostedRuntimeConfigInput } from '../../hosted-config.js';
 import { createUsageDedupeKey, normalizeUsageEvent, type RequiredUsageEvent, type UsageMeter, type UsageQuery } from '../../usage-meter.js';
 import type { CloudUsageEvent } from '../../hooks.js';
 import type { CloudAuditTrail, CloudAuditTrailEvent, CloudAuditTrailQuery } from '../../audit-risk.js';
@@ -48,6 +49,33 @@ export function rejectUnsafeSqlIdentifier(identifier: string): string {
     throw new Error('Unsafe SQL identifier');
   }
   return identifier;
+}
+
+export class SqlHostedConfigRepository implements HostedConfigRepository {
+  private readonly tableName: string;
+
+  constructor(private readonly db: SqlQueryExecutor, private readonly options: { tableName?: string; defaults?: Omit<HostedRuntimeConfigInput, 'tenant'> } = {}) {
+    this.tableName = rejectUnsafeSqlIdentifier(options.tableName ?? 'hosted_configs');
+  }
+
+  async getTenantConfig(tenant: CloudTenantContext): Promise<HostedRuntimeConfig> {
+    const result = await this.db.query<Record<string, unknown>>(
+      `SELECT * FROM ${this.tableName} WHERE organization_id = $1 LIMIT 1`,
+      [tenant.organizationId]
+    );
+    const row = result.rows[0];
+    if (!row) return normalizeHostedRuntimeConfig({ ...(this.options.defaults ?? {}), tenant });
+    return mapHostedConfigRow(row, tenant);
+  }
+
+  async updateTenantConfig(tenant: CloudTenantContext, updates: Partial<HostedRuntimeConfigInput>): Promise<HostedRuntimeConfig> {
+    const updatedAt = new Date();
+    const result = await this.db.query<Record<string, unknown>>(
+      `INSERT INTO ${this.tableName} (organization_id, api_base_url, enabled_chains, enabled_tokens, secret_refs, limits, metadata, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (organization_id) DO UPDATE SET api_base_url = EXCLUDED.api_base_url, enabled_chains = EXCLUDED.enabled_chains, enabled_tokens = EXCLUDED.enabled_tokens, secret_refs = EXCLUDED.secret_refs, limits = EXCLUDED.limits, metadata = EXCLUDED.metadata, updated_at = EXCLUDED.updated_at RETURNING *`,
+      [tenant.organizationId, updates.apiBaseUrl, updates.enabledChains, updates.enabledTokens, updates.secretRefs, updates.limits, updates.metadata, updatedAt]
+    );
+    return mapHostedConfigRow(result.rows[0], tenant);
+  }
 }
 
 export class SqlCloudUsageMeter implements UsageMeter {
@@ -477,6 +505,18 @@ function mapAddressPoolRow(row: Record<string, unknown>, tenant: CloudTenantCont
     masterPublicKeyRef: row.master_public_key_ref ? String(row.master_public_key_ref) : undefined,
     depositReference: row.deposit_reference ? String(row.deposit_reference) : undefined,
     orderId: row.order_id ? String(row.order_id) : undefined,
+  });
+}
+
+function mapHostedConfigRow(row: Record<string, unknown>, tenant: CloudTenantContext): HostedRuntimeConfig {
+  return normalizeHostedRuntimeConfig({
+    tenant,
+    apiBaseUrl: row.api_base_url ? String(row.api_base_url) : undefined,
+    enabledChains: Array.isArray(row.enabled_chains) ? row.enabled_chains.map(String) : [],
+    enabledTokens: Array.isArray(row.enabled_tokens) ? row.enabled_tokens.map(String) : [],
+    secretRefs: row.secret_refs as HostedRuntimeConfigInput['secretRefs'],
+    limits: row.limits as HostedRuntimeConfigInput['limits'],
+    metadata: row.metadata as Record<string, unknown> | undefined,
   });
 }
 

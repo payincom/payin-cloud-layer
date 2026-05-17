@@ -15,6 +15,7 @@ describe('Cloud SQL schema fixture contract', () => {
       'paymentlinks',
       'address_pool',
       'webhook_endpoints',
+      'hosted_configs',
       'usage_events',
       'audit_events',
     ]);

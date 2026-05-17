@@ -149,6 +149,7 @@ export {
   SqlCloudOrganizationRepository,
   SqlCloudPaymentLinkRepository,
   SqlCloudTenantResolver,
+  SqlHostedConfigRepository,
   SqlCloudUsageMeter,
   SqlCloudWebhookRepository,
   SqlQueryRecorder,

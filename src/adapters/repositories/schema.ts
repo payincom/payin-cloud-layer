@@ -8,6 +8,7 @@ export const CLOUD_LAYER_MINIMAL_SCHEMA_TABLES = [
   'paymentlinks',
   'address_pool',
   'webhook_endpoints',
+  'hosted_configs',
   'usage_events',
   'audit_events',
 ] as const;
@@ -110,6 +111,18 @@ CREATE TABLE IF NOT EXISTS webhook_endpoints (
   event_types TEXT[] NOT NULL,
   signing_secret_ref TEXT NOT NULL,
   enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS hosted_configs (
+  organization_id TEXT PRIMARY KEY REFERENCES organizations(id),
+  api_base_url TEXT,
+  enabled_chains TEXT[] NOT NULL DEFAULT '{}',
+  enabled_tokens TEXT[] NOT NULL DEFAULT '{}',
+  secret_refs JSONB,
+  limits JSONB,
+  metadata JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
