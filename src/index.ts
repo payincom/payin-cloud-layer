@@ -85,6 +85,15 @@ export {
   shouldRunDisposableIntegration,
 } from './integration-safety.js';
 
+export { WebhookDeliveryWorker } from './webhook-delivery-worker.js';
+export type {
+  WebhookDeliveryTransport,
+  WebhookDeliveryTransportResult,
+  WebhookDeliveryWorkerOptions,
+  WebhookDeliveryWorkerResult,
+  WebhookDeliveryWorkerRetryOptions,
+} from './webhook-delivery-worker.js';
+
 export {
   InMemoryCloudNotificationDeliveryRepository,
   createCloudWebhookDeliveryRecord,
