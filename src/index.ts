@@ -75,6 +75,19 @@ export type {
   CloudMonitorDiagnosticsInput,
 } from './config-diagnostics.js';
 
+export {
+  createPublicOrderStatusView,
+  createPublicPaymentLinkCheckoutView,
+  toLegacyPublicOrderStatusResponse,
+} from './public-checkout.js';
+export type {
+  PublicOrderStatusInput,
+  PublicOrderStatusTransferInput,
+  PublicOrderStatusView,
+  PublicPaymentLinkCheckoutOptions,
+  PublicPaymentLinkCheckoutView,
+} from './public-checkout.js';
+
 export { createCloudServiceLayer } from './services/factory.js';
 export type { CloudServiceLayer, CloudServiceLayerOptions } from './services/factory.js';
 export { CloudApiKeyService } from './services/api-key-service.js';

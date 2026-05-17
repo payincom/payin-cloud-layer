@@ -22,6 +22,7 @@ Status legend:
 | Payment links | `apps/api/tests/payment-links-api.test.ts` | `src/payment-links.ts`, `src/cloud-manager.ts`, `src/services/payment-link-service.ts`, `src/routes/payment-link-routes.ts` | `tests/unit/payment-link-contract.test.ts`, `tests/unit/cloud-payment-link-service.test.ts`, `tests/unit/payment-link-route-harness.test.ts` | contracted / service-covered / create-get-list-publish-route-covered / adapter-pending |
 | Address pool/deposits | `apps/api/tests/address-pool-summary-api.test.ts` | `src/address-pool.ts`, `src/cloud-processor.ts`, `src/cloud-manager.ts`, `src/services/address-pool-service.ts` | `tests/unit/address-pool-contract.test.ts`, `tests/unit/cloud-processor.test.ts`, `tests/unit/cloud-address-pool-service.test.ts` | contracted / service-covered / adapter-pending |
 | Webhooks/notifications | `packages/notification/tests/webhook-notifier.test.ts` | `src/webhooks.ts`, `src/notification-delivery.ts`, `src/webhook-delivery-worker.ts`, `src/cloud-manager.ts`, `src/services/webhook-service.ts`, `SqlCloudNotificationDeliveryRepository` | webhook + delivery worker + persistence + SQL + disposable integration tests | contracted / service-covered / worker-covered / delivery-persistence-covered / SQL-verified |
+| Public order/payment-link checkout | `apps/api/src/routes/pay-order.ts`, `apps/api/src/routes/order-status.ts`, `apps/api/src/routes/checkout.ts` | `src/public-checkout.ts` | `tests/unit/public-checkout-contract.test.ts` | contracted / framework-adapter-pending |
 | Processor runtime adapter | shared processor compatibility | `src/cloud-processor.ts` | `tests/unit/cloud-processor.test.ts` | contracted / adapter-pending |
 | Hosted runtime readiness/smoke | Cloud ops/readiness | planned | planned | planned |
 | Concrete DB/API adapters | old Cloud DB/routes | `src/adapters/repositories/*`, `src/routes/*`, `toLegacyCloudRouteResponse` | repository + SQL + route harness + legacy route envelope adapter tests | partially contracted / route-envelope-covered / implementation-pending |
@@ -51,4 +52,4 @@ Cloud API route extraction:
 - expand concrete framework adapter examples for Cloud route harnesses if needed
 - continue old Cloud route extraction for auth/public checkout surfaces
 - continue adding update/delete route harnesses where service coverage already exists but route coverage is still thin
-- add public checkout surface contracts for order/payment-link public pages and status payloads
+- add concrete framework adapters for public checkout/order-status surfaces when the runtime target is chosen
