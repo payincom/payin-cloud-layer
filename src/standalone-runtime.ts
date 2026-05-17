@@ -5,6 +5,7 @@ import {
   CloudApiKeyService,
   CloudHostedConfigService,
   CloudOrderService,
+  CloudOrganizationService,
   CloudPaymentLinkService,
   CloudWebhookService,
   InMemoryCloudAddressPoolRepository,
@@ -12,6 +13,7 @@ import {
   InMemoryCloudAuditTrail,
   InMemoryCloudNotificationDeliveryRepository,
   InMemoryCloudOrderRepository,
+  InMemoryCloudOrganizationRepository,
   InMemoryCloudPaymentLinkRepository,
   InMemoryCloudSubscriptionRepository,
   InMemoryCloudWebhookRepository,
@@ -26,6 +28,7 @@ import {
   SqlCloudAuditTrail,
   SqlCloudNotificationDeliveryRepository,
   SqlCloudOrderRepository,
+  SqlCloudOrganizationRepository,
   SqlCloudPaymentLinkRepository,
   SqlCloudSubscriptionRepository,
   SqlCloudUsageMeter,
@@ -47,6 +50,7 @@ import {
   type CloudWebhookEndpoint,
   type HostedRuntimeConfigInput,
   type CloudNotificationDeliveryRepository,
+  type CloudOrganizationRepository,
   type NormalizedCloudOrder,
   type NormalizedCloudPaymentLink,
   type RequiredUsageEvent,
@@ -90,6 +94,7 @@ interface RuntimeBackingStores {
   addressPool: RepositoryBackedAddressPoolPort;
   webhooks: MutableCloudWebhookEndpointRepository;
   deliveries: CloudNotificationDeliveryRepository;
+  organizations: CloudOrganizationRepository;
   persistence: 'memory' | 'postgres';
 }
 
@@ -154,6 +159,11 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions & { ba
   const addressPool = options.backingStores?.addressPool ?? new RepositoryBackedAddressPoolPort(new InMemoryCloudAddressPoolRepository());
   const webhooks = options.backingStores?.webhooks ?? new InMemoryCloudWebhookRepository();
   const deliveries = options.backingStores?.deliveries ?? new InMemoryCloudNotificationDeliveryRepository();
+  const organizations = options.backingStores?.organizations ?? new InMemoryCloudOrganizationRepository([
+    { id: tenant.organizationId, name: 'Cloud Layer Sandbox', slug: tenant.organizationId, planType: tenant.plan === 'free' || tenant.plan === 'enterprise' ? tenant.plan : 'pro' },
+  ], [
+    { organizationId: tenant.organizationId, userId: 'user-runtime-admin', role: 'admin', status: 'active', joinedAt: new Date() },
+  ]);
 
   const app = createCloudHonoApp({
     legacyEnvelopes: true,
@@ -173,6 +183,7 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions & { ba
       webhooks: new CloudWebhookService({ authenticator, entitlementProvider, webhooks, signer: new StaticCloudWebhookSigner(options.webhookSignature ?? process.env.PAYIN_WEBHOOK_TEST_SIGNATURE ?? 'runtime-sandbox-signature'), deliveries, usageMeter, auditTrail, billingLimitEnforcer }),
       apiKeys: new CloudApiKeyService({ authenticator, entitlementProvider, apiKeys, usageMeter, auditTrail }),
       audit: new CloudAuditService({ authenticator, entitlementProvider, auditTrail }),
+      organizations: new CloudOrganizationService({ authenticator, entitlementProvider, organizations, auditTrail }),
       configs: new CloudHostedConfigService({ authenticator, entitlementProvider, configs: hostedConfig, auditTrail }),
       readiness: {
         getReadiness: async () => createRuntimeReadinessReport({ tenant, checks: runtimeReadinessChecks({ hostedConfigConfigured: true, webhookCount: (await webhooks.listForTenant(tenant)).length }) }),
@@ -275,6 +286,7 @@ async function createPostgresBackingStores(options: PayInCloudRuntimeOptions, da
     addressPool: new RepositoryBackedAddressPoolPort(new SqlCloudAddressPoolRepository(db)),
     webhooks: new SqlCloudWebhookRepository(db),
     deliveries: new SqlCloudNotificationDeliveryRepository(db),
+    organizations: new SqlCloudOrganizationRepository(db),
     persistence: 'postgres',
   };
 }

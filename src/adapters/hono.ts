@@ -54,6 +54,15 @@ export function createCloudHonoApp(options: CloudHonoAdapterOptions): CloudHonoA
     app.delete('/api/v1/organizations/:organizationId/api-keys/:apiKeyId', async (c) => respond(c, await routes.apiKeys!.revokeApiKey({ headers: headers(c), body: undefined, params: { apiKeyId: c.req.param('apiKeyId') } }), legacy, 'empty'));
   }
 
+  if (routes.organizations) {
+    app.get('/api/v1/organization', async (c) => respond(c, await routes.organizations!.getCurrentOrganization({ headers: headers(c), body: undefined }), legacy, 'organization'));
+    app.get('/api/v1/organizations/:organizationId', async (c) => respond(c, await routes.organizations!.getCurrentOrganization({ headers: headers(c), body: undefined }), legacy, 'organization'));
+    app.put('/api/v1/organizations/:organizationId', async (c) => respond(c, await routes.organizations!.updateOrganization({ headers: headers(c), body: await jsonBody(c) as never }), legacy, 'organization'));
+    app.get('/api/v1/organizations/:organizationId/members', async (c) => respond(c, await routes.organizations!.listMembers({ headers: headers(c), body: undefined }), legacy, 'members'));
+    app.post('/api/v1/organizations/:organizationId/members', async (c) => respond(c, await routes.organizations!.addMember({ headers: headers(c), body: await jsonBody(c) as never }), legacy, 'member'));
+    app.put('/api/v1/organizations/:organizationId/members/:userId', async (c) => respond(c, await routes.organizations!.updateMember({ headers: headers(c), body: await jsonBody(c) as never, params: { userId: c.req.param('userId') } }), legacy, 'member'));
+  }
+
   if (routes.configs) {
     app.get('/api/v1/config', async (c) => respond(c, await routes.configs!.getConfig({ headers: headers(c), body: undefined }), legacy, 'config'));
     app.put('/api/v1/config', async (c) => respond(c, await routes.configs!.updateConfig({ headers: headers(c), body: await jsonBody(c) as never }), legacy, 'config'));
