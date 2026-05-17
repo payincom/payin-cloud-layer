@@ -38,5 +38,8 @@
   "bugs": {
     "url": "https://github.com/payincom/payin-cloud-layer/issues"
   },
-  "homepage": "https://github.com/payincom/payin-cloud-layer#readme"
+  "homepage": "https://github.com/payincom/payin-cloud-layer#readme",
+  "dependencies": {
+    "hono": "^4.12.19"
+  }
 }

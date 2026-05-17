@@ -2,6 +2,8 @@ export { createCloudApiKeyRouteHandlers } from './routes/api-key-routes.js';
 export type { CloudApiKeyCreateRouteBody, CloudApiKeyRouteHandlersOptions } from './routes/api-key-routes.js';
 export { createCloudRouteHandlers } from './routes/factory.js';
 export type { CloudRouteHandlersOptions } from './routes/factory.js';
+export { createCloudHonoApp } from './adapters/hono.js';
+export type { CloudHonoAdapterOptions, CloudHonoApp, CloudHonoPublicCheckoutAdapter } from './adapters/hono.js';
 export {
   CLOUD_LEGACY_ROUTE_COMPATIBILITY,
   toLegacyApiKeyCreateResponse,

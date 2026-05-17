@@ -36,6 +36,7 @@ npm run verify
 
 See [`docs/architecture.md`](docs/architecture.md).
 See [`docs/first-layer-acceptance.md`](docs/first-layer-acceptance.md) for the completed first-layer Cloud Overlay acceptance scope.
+See [`docs/second-layer-runtime-acceptance.md`](docs/second-layer-runtime-acceptance.md) for the Hono runtime binding and HTTP-level migration scope.
 
 ## Service layer example
 
@@ -69,6 +70,18 @@ const routes = createCloudRouteHandlers({ services });
 ```
 
 Old PayIn Cloud `/api/v1` clients can wrap route harness responses with `toLegacyCloudRouteResponse(...)` when they need legacy envelopes such as `{ apiKey, metadata }`, `{ config }`, or `{ endpoint }` instead of the newer route `{ data }` envelope.
+
+For Hono runtimes, use the concrete adapter:
+
+```ts
+import { createCloudHonoApp } from '@payin/cloud-layer';
+
+const app = createCloudHonoApp({
+  services,
+  legacyEnvelopes: true,
+  publicCheckout,
+});
+```
 
 ## Boundary rule
 

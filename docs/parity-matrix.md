@@ -26,6 +26,7 @@ Status legend:
 | Processor runtime adapter | shared processor compatibility | `src/cloud-processor.ts` | `tests/unit/cloud-processor.test.ts` | contracted / adapter-pending |
 | Hosted runtime readiness/smoke | Cloud ops/readiness | `src/runtime-readiness.ts`, `src/routes/runtime-readiness-routes.ts` | `tests/unit/runtime-readiness.test.ts`, `tests/unit/runtime-readiness-route-harness.test.ts` | contracted / route-covered / framework-adapter-pending |
 | Concrete DB/API adapters | old Cloud DB/routes | `src/adapters/repositories/*`, `src/routes/*`, `toLegacyCloudRouteResponse` | repository + SQL + route harness + legacy route envelope adapter tests | partially contracted / route-envelope-covered / implementation-pending |
+| Hono runtime binding | old Cloud Hono API runtime | `src/adapters/hono.ts` | `tests/unit/hono-adapter.test.ts`, `tests/integration/hono-runtime-flow.test.ts` | runtime-bound / old-api-http-covered |
 | Disposable integration tests | old Cloud E2E behavior | `tests/integration/disposable-db.test.ts`, `.github/workflows/disposable-integration.yml` | manual GitHub workflow with PostgreSQL service | partially verified / expand coverage |
 
 ## Current verification gate
@@ -51,5 +52,5 @@ Cloud API route extraction:
 - add framework adapter examples for Hono/Express/Fastify if needed
 - expand concrete framework adapter examples for Cloud route harnesses if needed
 - continue old Cloud route extraction for auth/public checkout surfaces
-- bind the framework-neutral first-layer route harnesses to a concrete runtime in the second-layer migration phase
-- replace old Cloud modules incrementally with the new route/service/repository contracts
+- replace old Cloud modules incrementally with the new Hono route/service/repository contracts
+- decide whether checkout SSR remains in old shared UI or moves behind the public checkout data contracts
