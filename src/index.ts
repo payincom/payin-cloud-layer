@@ -138,6 +138,7 @@ export {
   SqlCloudApiKeyRepository,
   SqlCloudAuditTrail,
   SqlCloudOrderRepository,
+  SqlCloudOrganizationRepository,
   SqlCloudPaymentLinkRepository,
   SqlCloudTenantResolver,
   SqlCloudUsageMeter,

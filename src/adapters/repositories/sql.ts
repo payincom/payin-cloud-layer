@@ -8,7 +8,7 @@ import type { CloudUsageEvent } from '../../hooks.js';
 import type { CloudAuditTrail, CloudAuditTrailEvent, CloudAuditTrailQuery } from '../../audit-risk.js';
 import type { CloudApiKey, CloudApiKeyCreateInput, CloudApiKeyLookupResult, CloudApiKeyManagementRepository } from '../../api-key.js';
 import type { CloudTenantMembership, CloudTenantResolver } from '../../tenant-resolver.js';
-import type { CloudMembershipStatus, CloudOrganizationRole } from '../../organization.js';
+import type { CloudMemberAddDraft, CloudOrganization, CloudOrganizationMember, CloudOrganizationRepository, CloudOrganizationUpdateDraft, CloudMembershipStatus, CloudOrganizationRole, UpdateCloudMemberInput } from '../../organization.js';
 import type { CloudOrderRepository } from './order-adapter.js';
 import type { CloudPaymentLinkRepository } from './payment-link-adapter.js';
 import type { CloudAddressPoolRepository } from './address-pool-adapter.js';
@@ -97,6 +97,67 @@ export class SqlCloudAuditTrail implements CloudAuditTrail {
 
   async list(_query: CloudAuditTrailQuery = {}): Promise<CloudAuditTrailEvent[]> {
     throw new Error('SqlCloudAuditTrail.list is adapter-pending');
+  }
+}
+
+export class SqlCloudOrganizationRepository implements CloudOrganizationRepository {
+  constructor(private readonly db: SqlQueryExecutor) {}
+
+  async getByTenant(tenant: CloudTenantContext): Promise<CloudOrganization | null> {
+    const result = await this.db.query<Record<string, unknown>>('SELECT * FROM organizations WHERE id = $1 LIMIT 1', [tenant.organizationId]);
+    return result.rows[0] ? mapOrganizationRow(result.rows[0]) : null;
+  }
+
+  async updateByTenant(tenant: CloudTenantContext, updates: CloudOrganizationUpdateDraft): Promise<CloudOrganization> {
+    const entries = Object.entries({
+      name: updates.name,
+      slug: updates.slug,
+      avatar_url: updates.avatarUrl,
+      website: updates.website,
+      description: updates.description,
+      plan_type: updates.planType,
+      monthly_order_limit: updates.monthlyOrderLimit,
+    }).filter(([, value]) => value !== undefined);
+    if (!entries.length) {
+      const existing = await this.getByTenant(tenant);
+      if (!existing) throw new Error(`Organization not found: ${tenant.organizationId}`);
+      return existing;
+    }
+    const assignments = entries.map(([column], index) => `${column} = $${index + 1}`);
+    const values = entries.map(([, value]) => value);
+    const result = await this.db.query<Record<string, unknown>>(
+      `UPDATE organizations SET ${assignments.join(', ')} WHERE id = $${entries.length + 1} RETURNING *`,
+      [...values, tenant.organizationId]
+    );
+    if (!result.rows[0]) throw new Error(`Organization not found: ${tenant.organizationId}`);
+    return mapOrganizationRow(result.rows[0]);
+  }
+
+  async listMembers(tenant: CloudTenantContext): Promise<CloudOrganizationMember[]> {
+    const result = await this.db.query<Record<string, unknown>>('SELECT * FROM organization_members WHERE organization_id = $1 ORDER BY created_at ASC', [tenant.organizationId]);
+    return result.rows.map(mapOrganizationMemberRow);
+  }
+
+  async getMember(tenant: CloudTenantContext, userId: string): Promise<CloudOrganizationMember | null> {
+    const result = await this.db.query<Record<string, unknown>>('SELECT * FROM organization_members WHERE organization_id = $1 AND user_id = $2 LIMIT 1', [tenant.organizationId, userId]);
+    return result.rows[0] ? mapOrganizationMemberRow(result.rows[0]) : null;
+  }
+
+  async addMember(member: CloudMemberAddDraft): Promise<CloudOrganizationMember> {
+    const result = await this.db.query<Record<string, unknown>>(
+      'INSERT INTO organization_members (organization_id, user_id, role, status, invited_by, invited_at, joined_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [member.organizationId, member.userId, member.role, member.status, member.invitedBy, member.invitedAt, member.joinedAt]
+    );
+    return mapOrganizationMemberRow(result.rows[0]);
+  }
+
+  async updateMember(tenant: CloudTenantContext, userId: string, updates: UpdateCloudMemberInput): Promise<CloudOrganizationMember> {
+    const result = await this.db.query<Record<string, unknown>>(
+      'UPDATE organization_members SET role = $1, status = $2 WHERE organization_id = $3 AND user_id = $4 RETURNING *',
+      [updates.role, updates.status, tenant.organizationId, userId]
+    );
+    if (!result.rows[0]) throw new Error(`Organization member not found: ${userId}`);
+    return mapOrganizationMemberRow(result.rows[0]);
   }
 }
 
@@ -417,6 +478,35 @@ function mapAddressPoolRow(row: Record<string, unknown>, tenant: CloudTenantCont
     depositReference: row.deposit_reference ? String(row.deposit_reference) : undefined,
     orderId: row.order_id ? String(row.order_id) : undefined,
   });
+}
+
+function mapOrganizationRow(row: Record<string, unknown>): CloudOrganization {
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    slug: String(row.slug),
+    planType: String(row.plan_type ?? row.planType ?? 'free') as CloudOrganization['planType'],
+    avatarUrl: row.avatar_url ? String(row.avatar_url) : undefined,
+    website: row.website ? String(row.website) : undefined,
+    description: row.description ? String(row.description) : undefined,
+    monthlyOrderLimit: row.monthly_order_limit == null ? undefined : Number(row.monthly_order_limit),
+    createdAt: row.created_at ? new Date(String(row.created_at)) : undefined,
+    updatedAt: row.updated_at ? new Date(String(row.updated_at)) : undefined,
+  };
+}
+
+function mapOrganizationMemberRow(row: Record<string, unknown>): CloudOrganizationMember {
+  return {
+    id: row.id ? String(row.id) : undefined,
+    organizationId: String(row.organization_id),
+    userId: String(row.user_id),
+    role: String(row.role) as CloudOrganizationRole,
+    status: String(row.status) as CloudMembershipStatus,
+    invitedBy: row.invited_by ? String(row.invited_by) : undefined,
+    invitedAt: row.invited_at ? new Date(String(row.invited_at)) : undefined,
+    joinedAt: row.joined_at ? new Date(String(row.joined_at)) : undefined,
+    createdAt: row.created_at ? new Date(String(row.created_at)) : undefined,
+  };
 }
 
 function mapApiKeyRow(row: Record<string, unknown>): CloudApiKey {
