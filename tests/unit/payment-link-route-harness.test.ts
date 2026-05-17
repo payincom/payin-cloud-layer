@@ -24,6 +24,28 @@ describe('Cloud payment link route harness', () => {
     expect(calls).toEqual([{ apiKey: 'pk_live_route', title: 'Checkout', amount: '12.00', currency: 'USDC', chainOptions: ['ethereum-sepolia'], inventoryTotal: 10 }]);
   });
 
+  it('maps legacy admin multi-currency create input to the primary payment link shape', async () => {
+    const calls: unknown[] = [];
+    const handlers = createCloudPaymentLinkRouteHandlers({
+      paymentLinks: {
+        async createPaymentLink(input: unknown) {
+          calls.push(input);
+          return { id: 'plink-route-2', status: 'draft' };
+        },
+        async publishPaymentLink() { throw new Error('unused'); },
+        async getPaymentLink() { throw new Error('unused'); },
+        async listPaymentLinks() { throw new Error('unused'); },
+      } as unknown as Pick<CloudPaymentLinkService, 'createPaymentLink' | 'publishPaymentLink' | 'getPaymentLink' | 'listPaymentLinks'>,
+    });
+
+    await expect(handlers.createPaymentLink({
+      headers: { authorization: 'Bearer pk_live_route' },
+      body: { title: 'Multi', amount: '10.00', currencies: [{ currency: 'USDC', chainOptions: ['ethereum-sepolia'], amount: '12.00', isPrimary: true }], amountType: 'fixed', ctaText: 'Pay now', theme: 'dark' },
+    })).resolves.toEqual({ status: 201, body: { data: { id: 'plink-route-2', status: 'draft' } } });
+
+    expect(calls).toEqual([{ apiKey: 'pk_live_route', title: 'Multi', amount: '12.00', currency: 'USDC', chainOptions: ['ethereum-sepolia'], metadata: { currencies: [{ currency: 'USDC', chain_options: ['ethereum-sepolia'], chainOptions: ['ethereum-sepolia'], amount: '12.00', is_primary: true, isPrimary: true }], amountType: 'fixed', ctaText: 'Pay now', theme: 'dark' } }]);
+  });
+
   it('maps publish payment link input to service', async () => {
     const calls: unknown[] = [];
     const handlers = createCloudPaymentLinkRouteHandlers({

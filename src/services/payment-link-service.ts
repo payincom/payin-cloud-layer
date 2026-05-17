@@ -29,6 +29,20 @@ export interface CloudPaymentLinkCreateServiceRequest {
   now?: Date;
 }
 
+export interface CloudPaymentLinkUpdateServiceRequest {
+  apiKey: string;
+  paymentLinkId: string;
+  updates: Record<string, unknown>;
+  now?: Date;
+}
+
+export interface CloudPaymentLinkCurrenciesServiceRequest {
+  apiKey: string;
+  paymentLinkId: string;
+  currencies: Array<{ currency: string; chainOptions?: string[]; chain_options?: string[]; amount?: string | null; isPrimary?: boolean; is_primary?: boolean }>;
+  now?: Date;
+}
+
 export interface CloudPaymentLinkPublishServiceRequest {
   apiKey: string;
   paymentLinkId: string;
@@ -37,6 +51,11 @@ export interface CloudPaymentLinkPublishServiceRequest {
 }
 
 export interface CloudPaymentLinkGetServiceRequest {
+  apiKey: string;
+  paymentLinkId: string;
+}
+
+export interface CloudPaymentLinkPreviewUrlServiceRequest {
   apiKey: string;
   paymentLinkId: string;
 }
@@ -123,6 +142,67 @@ export class CloudPaymentLinkService {
     return updated;
   }
 
+  async updatePaymentLink(request: CloudPaymentLinkUpdateServiceRequest): Promise<NormalizedCloudPaymentLink> {
+    const scope = await this.authenticateAndAuthorize(request.apiKey, 'payment-links:update');
+    const existing = await this.options.paymentLinks.get(request.paymentLinkId, scope.tenant) as CloudPaymentLink | null;
+    if (!existing) throw new Error(`Payment link not found: ${request.paymentLinkId}`);
+    const updates = removeUndefined({
+      title: request.updates.title,
+      description: request.updates.description,
+      amount: request.updates.amount,
+      inventoryTotal: request.updates.inventoryTotal,
+      metadata: mergeMetadata(existing.metadata, request.updates.metadata),
+    });
+    const updated = await this.options.paymentLinks.update(existing.id, scope.tenant, updates) as NormalizedCloudPaymentLink;
+    await this.recordUpdateAudit(scope, updated.id, request.now);
+    return updated;
+  }
+
+  async updatePaymentLinkCurrencies(request: CloudPaymentLinkCurrenciesServiceRequest): Promise<NormalizedCloudPaymentLink> {
+    const scope = await this.authenticateAndAuthorize(request.apiKey, 'payment-links:update');
+    const existing = await this.options.paymentLinks.get(request.paymentLinkId, scope.tenant) as CloudPaymentLink | null;
+    if (!existing) throw new Error(`Payment link not found: ${request.paymentLinkId}`);
+    const primary = request.currencies.find((currency) => currency.isPrimary ?? currency.is_primary) ?? request.currencies[0];
+    if (!primary) throw new Error('At least one currency must be specified');
+    const updated = await this.options.paymentLinks.update(existing.id, scope.tenant, {
+      currency: primary.currency,
+      amount: primary.amount ?? existing.amount,
+      chainOptions: primary.chainOptions ?? primary.chain_options ?? existing.chainOptions,
+      metadata: mergeMetadata(existing.metadata, { currencies: request.currencies.map((currency) => ({
+        currency: currency.currency,
+        amount: currency.amount ?? null,
+        chain_options: currency.chainOptions ?? currency.chain_options ?? [],
+        chainOptions: currency.chainOptions ?? currency.chain_options ?? [],
+        is_primary: Boolean(currency.isPrimary ?? currency.is_primary),
+        isPrimary: Boolean(currency.isPrimary ?? currency.is_primary),
+      })) }),
+    }) as NormalizedCloudPaymentLink;
+    await this.recordUpdateAudit(scope, updated.id, request.now);
+    return updated;
+  }
+
+  async unpublishPaymentLink(request: CloudPaymentLinkPublishServiceRequest): Promise<NormalizedCloudPaymentLink> {
+    return this.updateStatus(request, 'draft');
+  }
+
+  async archivePaymentLink(request: CloudPaymentLinkPublishServiceRequest): Promise<NormalizedCloudPaymentLink> {
+    return this.updateStatus(request, 'archived');
+  }
+
+  async restorePaymentLink(request: CloudPaymentLinkPublishServiceRequest): Promise<NormalizedCloudPaymentLink> {
+    return this.updateStatus(request, 'draft');
+  }
+
+  async createPaymentLinkPreviewUrl(request: CloudPaymentLinkPreviewUrlServiceRequest): Promise<{ url: string }> {
+    const link = await this.getPaymentLink(request);
+    return { url: `/checkout/preview/${encodeURIComponent(link.id)}` };
+  }
+
+  async listPaymentLinkOrders(request: CloudPaymentLinkPreviewUrlServiceRequest): Promise<unknown[]> {
+    await this.getPaymentLink(request);
+    return [];
+  }
+
   async getPaymentLink(request: CloudPaymentLinkGetServiceRequest): Promise<NormalizedCloudPaymentLink> {
     const scope = await this.authenticateAndAuthorize(request.apiKey, 'payment-links:read');
     const link = await this.options.paymentLinks.get(request.paymentLinkId, scope.tenant) as NormalizedCloudPaymentLink | null;
@@ -141,4 +221,31 @@ export class CloudPaymentLinkService {
     await this.options.entitlementProvider.assertAllowed(scope.tenant, capability);
     return scope;
   }
+
+  private async updateStatus(request: CloudPaymentLinkPublishServiceRequest, status: CloudPaymentLink['status']): Promise<NormalizedCloudPaymentLink> {
+    const scope = await this.authenticateAndAuthorize(request.apiKey, 'payment-links:update');
+    const existing = await this.options.paymentLinks.get(request.paymentLinkId, scope.tenant) as CloudPaymentLink | null;
+    if (!existing) throw new Error(`Payment link not found: ${request.paymentLinkId}`);
+    const updated = await this.options.paymentLinks.update(existing.id, scope.tenant, { status }) as NormalizedCloudPaymentLink;
+    await this.recordUpdateAudit(scope, updated.id, request.now);
+    return updated;
+  }
+
+  private async recordUpdateAudit(scope: CloudApiKeyScope, subjectId: string, occurredAt?: Date): Promise<void> {
+    await this.options.auditTrail.record(createCloudAuditEvent({
+      tenant: scope.tenant,
+      action: 'payment-links:update',
+      actor: { type: 'api_key', id: scope.apiKeyId },
+      subjectId,
+      occurredAt,
+    }));
+  }
+}
+
+function removeUndefined(input: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined));
+}
+
+function mergeMetadata(existing: Record<string, unknown> | undefined, updates: unknown): Record<string, unknown> {
+  return { ...(existing ?? {}), ...((updates && typeof updates === 'object') ? updates as Record<string, unknown> : {}) };
 }

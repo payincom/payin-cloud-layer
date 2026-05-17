@@ -46,7 +46,14 @@ export function createCloudHonoApp(options: CloudHonoAdapterOptions): CloudHonoA
   app.post('/api/v1/payment-links', async (c) => respond(c, await routes.paymentLinks.createPaymentLink({ headers: headers(c), body: await jsonBody(c) as never }), legacy, 'data'));
   app.get('/api/v1/payment-links', async (c) => respond(c, await routes.paymentLinks.listPaymentLinks({ headers: headers(c), body: undefined, query: query(c) }), legacy, 'data+pagination'));
   app.get('/api/v1/payment-links/:paymentLinkId', async (c) => respond(c, await routes.paymentLinks.getPaymentLink({ headers: headers(c), body: undefined, params: { paymentLinkId: c.req.param('paymentLinkId') } }), legacy, 'data'));
+  app.put('/api/v1/payment-links/:paymentLinkId', async (c) => respond(c, await routes.paymentLinks.updatePaymentLink({ headers: headers(c), body: await jsonBody(c) as never, params: { paymentLinkId: c.req.param('paymentLinkId') } }), legacy, 'data'));
+  app.put('/api/v1/payment-links/:paymentLinkId/currencies', async (c) => respond(c, await routes.paymentLinks.updatePaymentLinkCurrencies({ headers: headers(c), body: await jsonBody(c) as never, params: { paymentLinkId: c.req.param('paymentLinkId') } }), legacy, 'data'));
   app.post('/api/v1/payment-links/:paymentLinkId/publish', async (c) => respond(c, await routes.paymentLinks.publishPaymentLink({ headers: headers(c), body: await jsonBody(c) as never, params: { paymentLinkId: c.req.param('paymentLinkId') } }), legacy, 'data'));
+  app.post('/api/v1/payment-links/:paymentLinkId/unpublish', async (c) => respond(c, await routes.paymentLinks.unpublishPaymentLink({ headers: headers(c), body: undefined, params: { paymentLinkId: c.req.param('paymentLinkId') } }), legacy, 'data'));
+  app.post('/api/v1/payment-links/:paymentLinkId/archive', async (c) => respond(c, await routes.paymentLinks.archivePaymentLink({ headers: headers(c), body: undefined, params: { paymentLinkId: c.req.param('paymentLinkId') } }), legacy, 'data'));
+  app.post('/api/v1/payment-links/:paymentLinkId/restore', async (c) => respond(c, await routes.paymentLinks.restorePaymentLink({ headers: headers(c), body: undefined, params: { paymentLinkId: c.req.param('paymentLinkId') } }), legacy, 'data'));
+  app.post('/api/v1/payment-links/:paymentLinkId/preview-url', async (c) => respond(c, await routes.paymentLinks.createPaymentLinkPreviewUrl({ headers: headers(c), body: undefined, params: { paymentLinkId: c.req.param('paymentLinkId') } }), legacy, 'data'));
+  app.get('/api/v1/payment-links/:paymentLinkId/orders', async (c) => respond(c, await routes.paymentLinks.listPaymentLinkOrders({ headers: headers(c), body: undefined, params: { paymentLinkId: c.req.param('paymentLinkId') } }), legacy, 'data'));
 
   if (routes.apiKeys) {
     app.post('/api/v1/organizations/:organizationId/api-keys', async (c) => respond(c, await routes.apiKeys!.createApiKey({ headers: headers(c), body: await jsonBody(c) as never }), legacy, 'apiKey+metadata'));
