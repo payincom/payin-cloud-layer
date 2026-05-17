@@ -9,6 +9,7 @@ export interface CloudUsageEvent {
     | 'api_key.created'
     | 'api_key.revoked'
     | 'address_pool.imported'
+    | 'webhook.endpoint_upserted'
     | 'webhook.tested';
   subjectId?: string;
   quantity?: number;

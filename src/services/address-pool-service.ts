@@ -4,6 +4,7 @@ import type { AddressPoolSummary, CloudAddressProtocol, NormalizedCloudAddressPo
 import { type CloudCapability, type EntitlementProvider } from '../entitlements.js';
 import type { CloudAddressPoolPort } from '../ports.js';
 import type { UsageMeter } from '../usage-meter.js';
+import type { SubscriptionBillingLimitEnforcer } from '../subscription.js';
 
 export interface CloudAddressPoolServiceOptions {
   authenticator: CloudApiKeyAuthenticator;
@@ -11,6 +12,7 @@ export interface CloudAddressPoolServiceOptions {
   addressPool: CloudAddressPoolPort;
   usageMeter: UsageMeter;
   auditTrail: CloudAuditTrail;
+  billingLimitEnforcer?: SubscriptionBillingLimitEnforcer;
 }
 
 export interface CloudAddressPoolImportServiceRequest {
@@ -31,6 +33,14 @@ export class CloudAddressPoolService {
 
   async importAddresses(request: CloudAddressPoolImportServiceRequest): Promise<NormalizedCloudAddressPoolEntry[]> {
     const scope = await this.authenticateAndAuthorize(request.apiKey, 'address-pool:import');
+    await this.options.billingLimitEnforcer?.assertCanConsume({
+      tenant: scope.tenant,
+      limitName: 'addressPoolLimit',
+      usageType: 'address_pool.imported',
+      requested: request.addresses.length,
+      at: request.now,
+      throwOnDeny: true,
+    });
     const imported = await this.options.addressPool.import({
       tenant: scope.tenant,
       protocol: request.protocol,

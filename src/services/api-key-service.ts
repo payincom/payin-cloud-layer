@@ -8,6 +8,7 @@ import {
 import { type CloudCapability, type EntitlementProvider } from '../entitlements.js';
 import type { CloudOrganizationRole } from '../organization.js';
 import type { UsageMeter } from '../usage-meter.js';
+import type { SubscriptionBillingLimitEnforcer } from '../subscription.js';
 
 export interface CloudApiKeyServiceOptions {
   authenticator: CloudApiKeyAuthenticator;
@@ -17,6 +18,7 @@ export interface CloudApiKeyServiceOptions {
   auditTrail: CloudAuditTrail;
   secretFactory?: () => string;
   idFactory?: () => string;
+  billingLimitEnforcer?: SubscriptionBillingLimitEnforcer;
 }
 
 export interface CloudApiKeyCreateServiceRequest {
@@ -50,6 +52,14 @@ export class CloudApiKeyService {
   async createApiKey(request: CloudApiKeyCreateServiceRequest): Promise<CloudApiKeyCreateServiceResult> {
     const scope = await this.authenticateAndAuthorize(request.apiKey, 'api-keys:create');
     const now = request.now ?? new Date();
+    await this.options.billingLimitEnforcer?.assertCanConsume({
+      tenant: scope.tenant,
+      limitName: 'apiKeyLimit',
+      usageType: 'api_key.created',
+      requested: 1,
+      at: now,
+      throwOnDeny: true,
+    });
     const presentedKey = this.options.secretFactory?.() ?? generateApiKeySecret();
     const apiKey: CloudApiKey = {
       id: this.options.idFactory?.() ?? `key_${now.getTime()}`,

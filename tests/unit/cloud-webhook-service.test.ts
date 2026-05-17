@@ -4,15 +4,17 @@ import {
   CloudWebhookService,
   InMemoryCloudApiKeyRepository,
   InMemoryCloudAuditTrail,
+  InMemoryCloudSubscriptionRepository,
   InMemoryCloudWebhookRepository,
   InMemoryUsageMeter,
   StaticCloudWebhookSigner,
   StaticEntitlementProvider,
+  SubscriptionBillingLimitEnforcer,
 } from '../../src/index.js';
 
 const tenant = { organizationId: 'org-webhook-service', tenantId: 'org-webhook-service', plan: 'pro' as const };
 
-function service() {
+function service(overrides: Partial<ConstructorParameters<typeof CloudWebhookService>[0]> = {}) {
   const usageMeter = new InMemoryUsageMeter({ duplicatePolicy: 'ignore' });
   const auditTrail = new InMemoryCloudAuditTrail();
   const webhooks = new InMemoryCloudWebhookRepository();
@@ -35,6 +37,7 @@ function service() {
       signer: new StaticCloudWebhookSigner('sig-service'),
       usageMeter,
       auditTrail,
+      ...overrides,
     }),
   };
 }
@@ -77,6 +80,7 @@ describe('CloudWebhookService', () => {
     });
     expect(JSON.parse(delivery.body)).toMatchObject({ id: 'evt-test-1', type: 'webhook.tested' });
     expect(await setup.usageMeter.listUsage({ tenantId: tenant.organizationId })).toMatchObject([
+      { type: 'webhook.endpoint_upserted', subjectId: 'wh-service' },
       { type: 'webhook.tested', subjectId: 'wh-service' },
     ]);
     expect(await setup.auditTrail.list({ tenantId: tenant.organizationId, action: 'webhooks:test' })).toMatchObject([
@@ -88,5 +92,29 @@ describe('CloudWebhookService', () => {
     const setup = service();
 
     await expect(setup.service.createTestDelivery({ apiKey: 'pk_live_webhooks', endpointId: 'missing' })).rejects.toThrow('Webhook endpoint not found: missing');
+  });
+
+  it('enforces subscription webhook endpoint limits before repository side effects', async () => {
+    const usageMeter = new InMemoryUsageMeter({ duplicatePolicy: 'ignore' });
+    await usageMeter.recordUsage({ tenant, type: 'webhook.endpoint_upserted', subjectId: 'existing-webhook', occurredAt: new Date('2026-05-16T00:00:00.000Z') });
+    const setup = service({
+      usageMeter,
+      billingLimitEnforcer: new SubscriptionBillingLimitEnforcer({
+        subscriptions: new InMemoryCloudSubscriptionRepository([{ tenant, status: 'active', plan: 'pro', limits: { webhookEndpointLimit: 1 } }]),
+        usage: usageMeter,
+      }),
+    });
+
+    await expect(setup.service.upsertEndpoint({
+      apiKey: 'pk_live_webhooks',
+      id: 'wh-limited',
+      url: 'https://merchant.example/webhooks/limited',
+      eventTypes: ['order.created'],
+      signingSecretRef: 'secret://webhooks/limited',
+      enabled: true,
+      now: new Date('2026-05-17T00:00:00.000Z'),
+    })).rejects.toThrow('Subscription usage limit exceeded: webhookEndpointLimit');
+
+    await expect(setup.webhooks.listForTenant(tenant)).resolves.toHaveLength(0);
   });
 });

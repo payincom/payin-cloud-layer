@@ -5,9 +5,11 @@ import {
   InMemoryCloudAddressPoolRepository,
   InMemoryCloudApiKeyRepository,
   InMemoryCloudAuditTrail,
+  InMemoryCloudSubscriptionRepository,
   InMemoryUsageMeter,
   RepositoryBackedAddressPoolPort,
   StaticEntitlementProvider,
+  SubscriptionBillingLimitEnforcer,
 } from '../../src/index.js';
 
 const tenant = { organizationId: 'org-address-service', tenantId: 'org-address-service', plan: 'pro' as const };
@@ -84,6 +86,30 @@ describe('CloudAddressPoolService', () => {
       protocol: 'evm',
       addresses: [{ address: '0x3333333333333333333333333333333333333333' }],
     })).rejects.toThrow('Tenant is not entitled to capability: address-pool:import');
+
+    await expect(setup.addressPool.summary(tenant)).resolves.toMatchObject({ totalAddresses: 0 });
+  });
+
+  it('enforces subscription address-pool limits before adapter side effects', async () => {
+    const usageMeter = new InMemoryUsageMeter({ duplicatePolicy: 'ignore' });
+    await usageMeter.recordUsage({ tenant, type: 'address_pool.imported', subjectId: 'evm-existing', quantity: 1, occurredAt: new Date('2026-05-16T00:00:00.000Z') });
+    const setup = service({
+      usageMeter,
+      billingLimitEnforcer: new SubscriptionBillingLimitEnforcer({
+        subscriptions: new InMemoryCloudSubscriptionRepository([{ tenant, status: 'active', plan: 'pro', limits: { addressPoolLimit: 2 } }]),
+        usage: usageMeter,
+      }),
+    });
+
+    await expect(setup.service.importAddresses({
+      apiKey: 'pk_live_addresses',
+      protocol: 'evm',
+      addresses: [
+        { address: '0x4444444444444444444444444444444444444444' },
+        { address: '0x5555555555555555555555555555555555555555' },
+      ],
+      now: new Date('2026-05-17T00:00:00.000Z'),
+    })).rejects.toThrow('Subscription usage limit exceeded: addressPoolLimit');
 
     await expect(setup.addressPool.summary(tenant)).resolves.toMatchObject({ totalAddresses: 0 });
   });

@@ -3,6 +3,7 @@ import type { EntitlementProvider } from '../entitlements.js';
 import type { CloudLayerPorts } from '../ports.js';
 import { StaticCloudWebhookSigner, type CloudWebhookSigner } from '../webhooks.js';
 import type { MutableCloudWebhookEndpointRepository } from '../adapters/repositories/webhook-adapter.js';
+import type { SubscriptionBillingLimitEnforcer } from '../subscription.js';
 import { CloudAddressPoolService } from './address-pool-service.js';
 import { CloudOrderService } from './order-service.js';
 import { CloudPaymentLinkService } from './payment-link-service.js';
@@ -13,6 +14,7 @@ export interface CloudServiceLayerOptions {
   entitlementProvider: EntitlementProvider;
   authenticator?: CloudApiKeyAuthenticator;
   webhookSigner?: CloudWebhookSigner;
+  billingLimitEnforcer?: SubscriptionBillingLimitEnforcer;
 }
 
 export interface CloudServiceLayer {
@@ -35,6 +37,7 @@ export function createCloudServiceLayer(options: CloudServiceLayerOptions): Clou
       addressPool: options.ports.addressPool,
       usageMeter: options.ports.usageMeter,
       auditTrail: options.ports.auditTrail,
+      billingLimitEnforcer: options.billingLimitEnforcer,
     }),
     orders: new CloudOrderService({
       authenticator,
@@ -43,6 +46,7 @@ export function createCloudServiceLayer(options: CloudServiceLayerOptions): Clou
       orders: options.ports.orders,
       usageMeter: options.ports.usageMeter,
       auditTrail: options.ports.auditTrail,
+      billingLimitEnforcer: options.billingLimitEnforcer,
     }),
     paymentLinks: new CloudPaymentLinkService({
       authenticator,
@@ -51,6 +55,7 @@ export function createCloudServiceLayer(options: CloudServiceLayerOptions): Clou
       paymentLinks: options.ports.paymentLinks,
       usageMeter: options.ports.usageMeter,
       auditTrail: options.ports.auditTrail,
+      billingLimitEnforcer: options.billingLimitEnforcer,
     }),
     webhooks: new CloudWebhookService({
       authenticator,
@@ -59,6 +64,7 @@ export function createCloudServiceLayer(options: CloudServiceLayerOptions): Clou
       signer: webhookSigner,
       usageMeter: options.ports.usageMeter,
       auditTrail: options.ports.auditTrail,
+      billingLimitEnforcer: options.billingLimitEnforcer,
     }),
   };
 }

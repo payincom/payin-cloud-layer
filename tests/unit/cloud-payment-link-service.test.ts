@@ -5,15 +5,17 @@ import {
   InMemoryCloudApiKeyRepository,
   InMemoryCloudAuditTrail,
   InMemoryCloudPaymentLinkRepository,
+  InMemoryCloudSubscriptionRepository,
   InMemoryUsageMeter,
   RepositoryBackedPaymentLinkPort,
   StaticEntitlementProvider,
   StaticHostedConfigProvider,
+  SubscriptionBillingLimitEnforcer,
 } from '../../src/index.js';
 
 const tenant = { organizationId: 'org-pl-service', tenantId: 'org-pl-service', plan: 'pro' as const };
 
-function service() {
+function service(overrides: Partial<ConstructorParameters<typeof CloudPaymentLinkService>[0]> = {}) {
   const usageMeter = new InMemoryUsageMeter({ duplicatePolicy: 'ignore' });
   const auditTrail = new InMemoryCloudAuditTrail();
   const paymentLinks = new RepositoryBackedPaymentLinkPort(new InMemoryCloudPaymentLinkRepository());
@@ -36,6 +38,7 @@ function service() {
       paymentLinks,
       usageMeter,
       auditTrail,
+      ...overrides,
     }),
   };
 }
@@ -84,6 +87,29 @@ describe('CloudPaymentLinkService', () => {
       currency: 'USDC',
       chainOptions: ['base-sepolia'],
     })).rejects.toThrow('Chain base-sepolia is not enabled for this tenant');
+
+    await expect(setup.paymentLinks.list(tenant)).resolves.toHaveLength(0);
+  });
+
+  it('enforces subscription payment-link limits before adapter side effects', async () => {
+    const usageMeter = new InMemoryUsageMeter({ duplicatePolicy: 'ignore' });
+    await usageMeter.recordUsage({ tenant, type: 'payment_link.created', subjectId: 'existing-link', occurredAt: new Date('2026-05-16T00:00:00.000Z') });
+    const setup = service({
+      usageMeter,
+      billingLimitEnforcer: new SubscriptionBillingLimitEnforcer({
+        subscriptions: new InMemoryCloudSubscriptionRepository([{ tenant, status: 'active', plan: 'pro', limits: { paymentLinkLimit: 1 } }]),
+        usage: usageMeter,
+      }),
+    });
+
+    await expect(setup.service.createPaymentLink({
+      apiKey: 'pk_live_plinks',
+      title: 'Limited Checkout',
+      amount: '25.50',
+      currency: 'USDC',
+      chainOptions: ['ethereum-sepolia'],
+      now: new Date('2026-05-17T00:00:00.000Z'),
+    })).rejects.toThrow('Subscription usage limit exceeded: paymentLinkLimit');
 
     await expect(setup.paymentLinks.list(tenant)).resolves.toHaveLength(0);
   });

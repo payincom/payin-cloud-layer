@@ -19,7 +19,7 @@ It must not become a fork of PayIn Open. PayIn Open is the complete free/self-ho
 - `CloudManager`: manager overlay that injects tenant scope and wraps operations with entitlement, billing, and audit hooks.
 - `CloudTenantResolver`: route/runtime adapter interface for resolving active tenant membership.
 - `HostedConfigProvider`: hosted config abstraction using secret refs rather than raw secrets.
-- `CloudOrderService`, `CloudPaymentLinkService`, `CloudAddressPoolService`, `CloudWebhookService`: API-route-ready payment operation services that compose API-key auth, entitlements, hosted config, repositories, usage, and audit.
+- `CloudOrderService`, `CloudPaymentLinkService`, `CloudAddressPoolService`, `CloudWebhookService`: API-route-ready payment operation services that compose API-key auth, entitlements, hosted config, optional subscription billing-limit enforcement, repositories, usage, and audit.
 - `CloudApiKeyService`, `CloudOrganizationService`, `CloudHostedConfigService`: Cloud SaaS management services for API keys, organization/member administration, and hosted config.
 - `createCloudServiceLayer`: factory that assembles the route service layer from `CloudLayerPorts`.
 

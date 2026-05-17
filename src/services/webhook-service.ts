@@ -10,6 +10,7 @@ import {
   type CloudWebhookSigner,
 } from '../webhooks.js';
 import type { MutableCloudWebhookEndpointRepository } from '../adapters/repositories/webhook-adapter.js';
+import type { SubscriptionBillingLimitEnforcer } from '../subscription.js';
 
 export interface CloudWebhookServiceOptions {
   authenticator: CloudApiKeyAuthenticator;
@@ -18,6 +19,7 @@ export interface CloudWebhookServiceOptions {
   signer: CloudWebhookSigner;
   usageMeter: UsageMeter;
   auditTrail: CloudAuditTrail;
+  billingLimitEnforcer?: SubscriptionBillingLimitEnforcer;
 }
 
 export interface CloudWebhookEndpointUpsertServiceRequest {
@@ -43,6 +45,14 @@ export class CloudWebhookService {
 
   async upsertEndpoint(request: CloudWebhookEndpointUpsertServiceRequest): Promise<CloudWebhookEndpoint> {
     const scope = await this.authenticateAndAuthorize(request.apiKey, 'config:update');
+    await this.options.billingLimitEnforcer?.assertCanConsume({
+      tenant: scope.tenant,
+      limitName: 'webhookEndpointLimit',
+      usageType: 'webhook.endpoint_upserted',
+      requested: 1,
+      at: request.now,
+      throwOnDeny: true,
+    });
     const endpoint = await this.options.webhooks.upsert({
       id: request.id,
       tenant: scope.tenant,
@@ -63,6 +73,14 @@ export class CloudWebhookService {
       occurredAt: request.now,
       metadata: { resource: 'webhook_endpoint' },
     }));
+
+    await this.options.usageMeter.recordUsage({
+      tenant: scope.tenant,
+      type: 'webhook.endpoint_upserted',
+      subjectId: endpoint.id,
+      quantity: 1,
+      occurredAt: request.now ?? new Date(),
+    });
 
     return endpoint;
   }

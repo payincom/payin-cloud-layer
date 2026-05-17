@@ -5,6 +5,7 @@ import type { HostedConfigProvider } from '../hosted-config.js';
 import { publishCloudPaymentLink, type CloudPaymentLink, type NormalizedCloudPaymentLink } from '../payment-links.js';
 import type { CloudPaymentLinkPort } from '../ports.js';
 import type { UsageMeter } from '../usage-meter.js';
+import type { SubscriptionBillingLimitEnforcer } from '../subscription.js';
 
 export interface CloudPaymentLinkServiceOptions {
   authenticator: CloudApiKeyAuthenticator;
@@ -13,6 +14,7 @@ export interface CloudPaymentLinkServiceOptions {
   paymentLinks: CloudPaymentLinkPort;
   usageMeter: UsageMeter;
   auditTrail: CloudAuditTrail;
+  billingLimitEnforcer?: SubscriptionBillingLimitEnforcer;
 }
 
 export interface CloudPaymentLinkCreateServiceRequest {
@@ -48,6 +50,15 @@ export class CloudPaymentLinkService {
         throw new Error(`Chain ${chain} is not enabled for this tenant`);
       }
     }
+
+    await this.options.billingLimitEnforcer?.assertCanConsume({
+      tenant: scope.tenant,
+      limitName: 'paymentLinkLimit',
+      usageType: 'payment_link.created',
+      requested: 1,
+      at: request.now,
+      throwOnDeny: true,
+    });
 
     const link = await this.options.paymentLinks.create({
       id: '',

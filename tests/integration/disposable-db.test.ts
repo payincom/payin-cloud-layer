@@ -20,6 +20,7 @@ import {
   getCloudLayerMinimalSchemaSql,
   normalizeCloudOrder,
   shouldRunDisposableIntegration,
+  SubscriptionBillingLimitEnforcer,
 } from '../../src/index.js';
 
 const enabled = shouldRunDisposableIntegration();
@@ -196,6 +197,30 @@ describe.runIf(enabled)('disposable database integration', () => {
     await expect(usage.listUsage({ tenantId: 'org-integration', type: 'order.created' })).resolves.toMatchObject([
       { tenant: { organizationId: 'org-integration' }, type: 'order.created', subjectId: 'order-integration' },
     ]);
+    const billingLimits = new SubscriptionBillingLimitEnforcer({ subscriptions, usage });
+    await expect(billingLimits.assertCanConsume({
+      tenant: { organizationId: 'org-integration' },
+      limitName: 'monthlyOrderLimit',
+      usageType: 'order.created',
+      requested: 1,
+      at: new Date('2026-05-17T00:00:00.000Z'),
+    })).resolves.toMatchObject({ allowed: true, current: 1, requested: 1, limit: 1000 });
+    await subscriptions.upsert({
+      tenant: { organizationId: 'org-integration' },
+      status: 'active',
+      plan: 'pro',
+      currentPeriodStart: new Date('2026-05-01T00:00:00.000Z'),
+      currentPeriodEnd: new Date('2026-06-01T00:00:00.000Z'),
+      limits: { monthlyOrderLimit: 1 },
+    });
+    await expect(billingLimits.assertCanConsume({
+      tenant: { organizationId: 'org-integration' },
+      limitName: 'monthlyOrderLimit',
+      usageType: 'order.created',
+      requested: 1,
+      at: new Date('2026-05-17T00:00:00.000Z'),
+      throwOnDeny: true,
+    })).rejects.toThrow('Subscription usage limit exceeded: monthlyOrderLimit');
 
     const deliveries = new SqlCloudNotificationDeliveryRepository(executor);
     await deliveries.enqueue(createCloudWebhookDeliveryRecord({

@@ -4,8 +4,10 @@ import {
   CloudApiKeyService,
   InMemoryCloudApiKeyRepository,
   InMemoryCloudAuditTrail,
+  InMemoryCloudSubscriptionRepository,
   InMemoryUsageMeter,
   StaticEntitlementProvider,
+  SubscriptionBillingLimitEnforcer,
 } from '../../src/index.js';
 
 const tenant = { organizationId: 'org-api-key-service', tenantId: 'org-api-key-service', plan: 'pro' as const };
@@ -97,6 +99,21 @@ describe('CloudApiKeyService', () => {
     const setup = service({ entitlementProvider: new StaticEntitlementProvider(['api-keys:read']) });
 
     await expect(setup.service.createApiKey({ apiKey: 'pk_live_admin', name: 'Checkout API' })).rejects.toThrow('Tenant is not entitled to capability: api-keys:create');
+    expect(await setup.apiKeys.listForTenant(tenant)).toHaveLength(1);
+  });
+
+  it('enforces subscription API-key limits before repository side effects', async () => {
+    const usageMeter = new InMemoryUsageMeter({ duplicatePolicy: 'ignore' });
+    await usageMeter.recordUsage({ tenant, type: 'api_key.created', subjectId: 'existing-key', occurredAt: new Date('2026-05-16T00:00:00.000Z') });
+    const setup = service({
+      usageMeter,
+      billingLimitEnforcer: new SubscriptionBillingLimitEnforcer({
+        subscriptions: new InMemoryCloudSubscriptionRepository([{ tenant, status: 'active', plan: 'pro', limits: { apiKeyLimit: 1 } }]),
+        usage: usageMeter,
+      }),
+    });
+
+    await expect(setup.service.createApiKey({ apiKey: 'pk_live_admin', name: 'Checkout API', now: new Date('2026-05-17T00:00:00.000Z') })).rejects.toThrow('Subscription usage limit exceeded: apiKeyLimit');
     expect(await setup.apiKeys.listForTenant(tenant)).toHaveLength(1);
   });
 });

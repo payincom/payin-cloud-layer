@@ -4,11 +4,13 @@ import {
   CloudOrderService,
   InMemoryCloudApiKeyRepository,
   InMemoryCloudAuditTrail,
+  InMemoryCloudSubscriptionRepository,
   InMemoryCloudOrderRepository,
   InMemoryUsageMeter,
   RepositoryBackedOrderPort,
   StaticEntitlementProvider,
   StaticHostedConfigProvider,
+  SubscriptionBillingLimitEnforcer,
   type CloudLayerPorts,
 } from '../../src/index.js';
 
@@ -97,5 +99,25 @@ describe('CloudOrderService', () => {
     })).rejects.toThrow('Tenant is not entitled to capability: orders:create');
 
     await expect(setup.orders.list(tenant)).resolves.toHaveLength(0);
+  });
+
+  it('enforces subscription order limits before adapter side effects', async () => {
+    const setup = service();
+    const subscriptions = new InMemoryCloudSubscriptionRepository([
+      { tenant, status: 'active', plan: 'pro', limits: { monthlyOrderLimit: 1 } },
+    ]);
+    await setup.usageMeter.recordUsage({ tenant, type: 'order.created', subjectId: 'existing-order', occurredAt: new Date('2026-05-16T00:00:00.000Z') });
+    const limited = service({ billingLimitEnforcer: new SubscriptionBillingLimitEnforcer({ subscriptions, usage: setup.usageMeter }) });
+
+    await expect(limited.service.createOrder({
+      apiKey: 'pk_live_orders',
+      orderReference: 'merchant-service-limited',
+      amount: '10.00',
+      currency: 'USDC',
+      chainId: 'ethereum-sepolia',
+      now: new Date('2026-05-17T00:00:00.000Z'),
+    })).rejects.toThrow('Subscription usage limit exceeded: monthlyOrderLimit');
+
+    await expect(limited.orders.list(tenant)).resolves.toHaveLength(0);
   });
 });

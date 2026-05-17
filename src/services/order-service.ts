@@ -5,6 +5,7 @@ import { createCloudOrderDraft, type CloudOrderDraftInput, type NormalizedCloudO
 import type { CloudOrderPort } from '../ports.js';
 import type { HostedConfigProvider } from '../hosted-config.js';
 import type { UsageMeter } from '../usage-meter.js';
+import type { SubscriptionBillingLimitEnforcer } from '../subscription.js';
 
 export interface CloudOrderServiceOptions {
   authenticator: CloudApiKeyAuthenticator;
@@ -13,6 +14,7 @@ export interface CloudOrderServiceOptions {
   orders: CloudOrderPort;
   usageMeter: UsageMeter;
   auditTrail: CloudAuditTrail;
+  billingLimitEnforcer?: SubscriptionBillingLimitEnforcer;
 }
 
 export interface CloudOrderCreateServiceRequest extends Omit<CloudOrderDraftInput, 'tenant'> {
@@ -32,6 +34,15 @@ export class CloudOrderService {
     if (!config.isTokenEnabled(request.currency)) {
       throw new Error(`Token ${request.currency} is not enabled for this tenant`);
     }
+
+    await this.options.billingLimitEnforcer?.assertCanConsume({
+      tenant: scope.tenant,
+      limitName: 'monthlyOrderLimit',
+      usageType: 'order.created',
+      requested: 1,
+      at: request.now,
+      throwOnDeny: true,
+    });
 
     const draft = createCloudOrderDraft({
       tenant: scope.tenant,
