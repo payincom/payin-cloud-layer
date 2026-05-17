@@ -12,6 +12,8 @@ const runtime = createPayInCloudRuntime({
   webhookSignature: process.env.PAYIN_WEBHOOK_TEST_SIGNATURE,
 });
 
+runtime.app.get('/healthz', (c) => c.json({ ok: true, service: 'payin-cloud-runtime' }));
+
 serve({ fetch: runtime.app.fetch, port }, (info) => {
   console.log(JSON.stringify({ event: 'payin-cloud-runtime.started', port: info.port, tenant: runtime.tenant.tenantId }));
 });
