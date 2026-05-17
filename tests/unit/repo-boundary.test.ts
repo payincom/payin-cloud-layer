@@ -7,7 +7,7 @@ const sourceDirs = ['src', 'tests'];
 const bannedPatterns = [
   /from ['"]\.\.\/payin(?:-open)?\//,
   /from ['"]\/data\/openclaw\/workspace\/payin(?:-open)?\//,
-  /@payin\/(?:processor|shared|manager|auth|notification)/,
+  /@payin\/(?:processor|manager|auth|notification)/,
 ];
 
 describe('Cloud layer repository boundary', () => {

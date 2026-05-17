@@ -1,6 +1,7 @@
 import { createCloudOrderStatusSummary, type CloudOrder, type CloudOrderStatusSummary } from './orders.js';
 import { createPublicPaymentLinkView, type CloudPaymentLink, type PublicPaymentLinkView } from './payment-links.js';
 import type { CloudAddressPoolEntry } from './address-pool.js';
+import { renderPaymentLinkCheckoutPage } from '@payin/shared/checkout';
 
 export interface PublicOrderStatusTransferInput {
   transactionHash?: string | null;
@@ -170,24 +171,34 @@ export function createPublicPaymentLinkCheckoutView(link: CloudPaymentLink, opti
 }
 
 export function renderPublicPaymentLinkCheckoutHtml(view: PublicPaymentLinkCheckoutView): string {
-  const title = view.title || 'Pay with PayIn';
-  const inventory = view.availableInventory == null ? '' : `<p class="muted">${view.availableInventory} available</p>`;
-  const chainOptions = view.chainOptions.map((chain) => `<li>${escapeHtml(chain)}</li>`).join('');
-  return htmlDocument(title, `
-    <main class="payin-checkout payin-payment-link">
-      <section class="card">
-        <p class="eyebrow">PayIn checkout</p>
-        <h1>${escapeHtml(title)}</h1>
-        ${view.description ? `<p class="description">${escapeHtml(view.description)}</p>` : ''}
-        <p class="amount">${escapeHtml(view.amount)} <span>${escapeHtml(view.currency)}</span></p>
-        ${inventory}
-        <div class="chains"><h2>Accepted networks</h2><ul>${chainOptions}</ul></div>
-        <p><a class="button" href="${escapeAttribute(`${view.orderBaseUrl}?paymentLink=${encodeURIComponent(view.id)}`)}">Create payment order</a></p>
-        <p class="muted">Share URL: <span class="mono">${escapeHtml(view.shareUrl)}</span></p>
-      </section>
-      <script type="application/json" id="payin-checkout-data">${escapeHtml(JSON.stringify({ success: true, data: view }))}</script>
-    </main>
-  `);
+  const html = renderPaymentLinkCheckoutPage({
+    title: view.title || 'Pay with PayIn',
+    description: view.description ?? null,
+    slug: view.slug,
+    defaultAmount: view.amount,
+    currencies: [{
+      currency: view.currency,
+      chains: view.chainOptions,
+      amount: view.amount,
+      isPrimary: true,
+    }],
+    shareUrl: view.shareUrl,
+    inventoryTotal: view.availableInventory,
+    inventoryReserved: null,
+    inventorySold: null,
+    amountType: 'fixed',
+  }, {
+    mode: 'live',
+    requestOrigin: view.requestOrigin,
+    apiBaseUrl: view.apiBaseUrl,
+    orderBaseUrl: view.orderBaseUrl,
+  });
+  return appendLegacyCheckoutDataScript(html, view);
+}
+
+function appendLegacyCheckoutDataScript(html: string, view: PublicPaymentLinkCheckoutView): string {
+  const script = `<script type="application/json" id="payin-checkout-data">${escapeHtml(JSON.stringify({ success: true, data: view }))}</script>`;
+  return html.includes('</body>') ? html.replace('</body>', `${script}</body>`) : `${html}${script}`;
 }
 
 export function createPublicDepositStatusView(entry: CloudAddressPoolEntry, options: { requestOrigin: string }): PublicDepositStatusView {

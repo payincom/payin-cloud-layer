@@ -114,7 +114,7 @@ describe('public checkout contracts', () => {
       slug: 'html-checkout',
     }, { requestOrigin: 'https://pay.example' });
 
-    expect(renderPublicPaymentLinkCheckoutHtml(checkout)).toContain('<!doctype html>');
+    expect(renderPublicPaymentLinkCheckoutHtml(checkout).toLowerCase()).toContain('<!doctype html>');
     expect(renderPublicPaymentLinkCheckoutHtml(checkout)).toContain('id="payin-checkout-data"');
     expect(renderPublicPaymentLinkCheckoutHtml(checkout)).toContain('HTML checkout');
 
