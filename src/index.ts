@@ -112,6 +112,7 @@ export {
 export {
   CloudSubscriptionError,
   InMemoryCloudSubscriptionRepository,
+  SubscriptionBillingLimitEnforcer,
   SubscriptionEntitlementProvider,
   SubscriptionUsageLimitExceededError,
   assertSubscriptionUsageLimit,
@@ -123,6 +124,8 @@ export type {
   CloudSubscriptionInput,
   CloudSubscriptionRepository,
   CloudSubscriptionStatus,
+  SubscriptionBillingLimitEnforcerOptions,
+  SubscriptionBillingLimitInput,
 } from './subscription.js';
 
 export { WebhookDeliveryWorker } from './webhook-delivery-worker.js';

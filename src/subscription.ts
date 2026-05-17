@@ -1,7 +1,9 @@
 import { normalizeCloudTenantContext, type CloudTenantContext, type NormalizedCloudTenantContext } from './context.js';
 import { EntitlementDeniedError, type CloudCapability, type EntitlementProvider } from './entitlements.js';
+import type { CloudUsageEvent } from './hooks.js';
 import type { CloudOrganizationPlan } from './organization.js';
 import { DEFAULT_HOSTED_PLAN_LIMITS, type HostedLimitDecision, type HostedRuntimeLimits } from './hosted-config.js';
+import { getBillingPeriodRange, toBillingPeriod, type UsageMeter } from './usage-meter.js';
 
 export type CloudSubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'paused' | 'cancelled';
 
@@ -93,6 +95,50 @@ export class SubscriptionEntitlementProvider implements EntitlementProvider {
     if (!isSubscriptionActive(subscription) && !READ_ONLY_CAPABILITIES.has(capability)) {
       throw new EntitlementDeniedError(context, capability, `Cloud subscription is not active: ${subscription.status}`);
     }
+  }
+}
+
+export interface SubscriptionBillingLimitEnforcerOptions {
+  subscriptions: CloudSubscriptionRepository;
+  usage: UsageMeter;
+}
+
+export interface SubscriptionBillingLimitInput {
+  tenant: CloudTenantContext;
+  limitName: keyof HostedRuntimeLimits;
+  usageType: CloudUsageEvent['type'];
+  requested?: number;
+  at?: Date;
+  throwOnDeny?: boolean;
+}
+
+export class SubscriptionBillingLimitEnforcer {
+  constructor(private readonly options: SubscriptionBillingLimitEnforcerOptions) {}
+
+  async assertCanConsume(input: SubscriptionBillingLimitInput): Promise<HostedLimitDecision> {
+    const subscription = await this.options.subscriptions.getForTenant(input.tenant);
+    if (!subscription) throw new CloudSubscriptionError('Cloud subscription is required');
+    if (!isSubscriptionActive(subscription)) throw new CloudSubscriptionError(`Cloud subscription is not active: ${subscription.status}`);
+
+    const at = input.at ?? new Date();
+    const range = subscription.currentPeriodStart && subscription.currentPeriodEnd
+      ? { start: subscription.currentPeriodStart, end: subscription.currentPeriodEnd }
+      : getBillingPeriodRange(toBillingPeriod(at));
+    const events = await this.options.usage.listUsage({
+      tenantId: normalizeCloudTenantContext(input.tenant).organizationId,
+      type: input.usageType,
+      from: range.start,
+      to: range.end,
+    });
+    const current = events.reduce((sum, event) => sum + event.quantity, 0);
+
+    return assertSubscriptionUsageLimit({
+      limitName: input.limitName,
+      limits: subscription.limits,
+      current,
+      requested: input.requested,
+      throwOnDeny: input.throwOnDeny,
+    });
   }
 }
 
