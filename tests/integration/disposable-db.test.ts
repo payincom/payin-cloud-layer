@@ -4,6 +4,7 @@ import {
   SqlCloudAddressPoolRepository,
   SqlCloudApiKeyRepository,
   SqlCloudAuditTrail,
+  SqlCloudNotificationDeliveryRepository,
   SqlCloudOrderRepository,
   SqlCloudOrganizationRepository,
   SqlCloudPaymentLinkRepository,
@@ -12,6 +13,7 @@ import {
   SqlHostedConfigRepository,
   SqlCloudWebhookRepository,
   createCloudAuditEvent,
+  createCloudWebhookDeliveryRecord,
   applyCloudLayerSchema,
   assertDisposableIntegrationDatabaseUrl,
   getCloudLayerMinimalSchemaSql,
@@ -169,6 +171,25 @@ describe.runIf(enabled)('disposable database integration', () => {
     await usage.recordUsage({ tenant: { organizationId: 'org-integration' }, type: 'order.created', subjectId: 'order-integration', quantity: 1, occurredAt: new Date('2026-05-16T22:55:00.000Z') });
     await expect(usage.listUsage({ tenantId: 'org-integration', type: 'order.created' })).resolves.toMatchObject([
       { tenant: { organizationId: 'org-integration' }, type: 'order.created', subjectId: 'order-integration' },
+    ]);
+
+    const deliveries = new SqlCloudNotificationDeliveryRepository(executor);
+    await deliveries.enqueue(createCloudWebhookDeliveryRecord({
+      id: 'delivery-integration',
+      tenant: { organizationId: 'org-integration' },
+      endpointId: 'wh-integration',
+      eventId: 'evt-integration',
+      eventType: 'order.completed',
+      url: 'https://merchant.example/webhook',
+      headers: { 'payin-signature': 'sig-integration' },
+      body: '{}',
+      nextAttemptAt: new Date('2026-05-17T01:50:00.000Z'),
+    }));
+    await expect(deliveries.listForTenant({ organizationId: 'org-integration' })).resolves.toMatchObject([
+      { id: 'delivery-integration', status: 'queued', endpointId: 'wh-integration' },
+    ]);
+    await expect(deliveries.claimDue({ now: new Date('2026-05-17T01:51:00.000Z'), limit: 10 })).resolves.toMatchObject([
+      { id: 'delivery-integration', status: 'processing' },
     ]);
 
     const audit = new SqlCloudAuditTrail(executor);
