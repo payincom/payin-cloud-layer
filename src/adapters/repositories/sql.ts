@@ -6,7 +6,7 @@ import { normalizeCloudTenantContext, type CloudTenantContext } from '../../cont
 import { createUsageDedupeKey, normalizeUsageEvent, type RequiredUsageEvent, type UsageMeter, type UsageQuery } from '../../usage-meter.js';
 import type { CloudUsageEvent } from '../../hooks.js';
 import type { CloudAuditTrail, CloudAuditTrailEvent, CloudAuditTrailQuery } from '../../audit-risk.js';
-import type { CloudApiKeyLookupResult, CloudApiKeyRepository } from '../../api-key.js';
+import type { CloudApiKey, CloudApiKeyCreateInput, CloudApiKeyLookupResult, CloudApiKeyManagementRepository } from '../../api-key.js';
 import type { CloudTenantMembership, CloudTenantResolver } from '../../tenant-resolver.js';
 import type { CloudMembershipStatus, CloudOrganizationRole } from '../../organization.js';
 import type { CloudOrderRepository } from './order-adapter.js';
@@ -119,8 +119,45 @@ export class SqlCloudTenantResolver implements CloudTenantResolver {
   }
 }
 
-export class SqlCloudApiKeyRepository implements CloudApiKeyRepository {
+export class SqlCloudApiKeyRepository implements CloudApiKeyManagementRepository {
   constructor(private readonly db: SqlQueryExecutor) {}
+
+  async create(input: CloudApiKeyCreateInput): Promise<CloudApiKey> {
+    const result = await this.db.query<Record<string, unknown>>(
+      'INSERT INTO api_keys (id, key_hash, key_prefix, name, organization_id, user_id, role, capabilities, expires_at, created_at, metadata) VALUES ($1, crypt($2, gen_salt(\'bf\')), $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
+      [
+        input.apiKey.id,
+        input.presentedKey,
+        input.apiKey.keyPrefix,
+        input.apiKey.name,
+        input.apiKey.organizationId,
+        input.apiKey.userId,
+        input.apiKey.role,
+        input.apiKey.capabilities,
+        input.apiKey.expiresAt,
+        input.apiKey.createdAt,
+        input.apiKey.metadata,
+      ]
+    );
+    return mapApiKeyRow(result.rows[0]);
+  }
+
+  async listForTenant(tenant: CloudTenantContext): Promise<CloudApiKey[]> {
+    const result = await this.db.query<Record<string, unknown>>(
+      'SELECT * FROM api_keys WHERE organization_id = $1 ORDER BY created_at ASC',
+      [tenant.organizationId]
+    );
+    return result.rows.map(mapApiKeyRow);
+  }
+
+  async revokeForTenant(apiKeyId: string, tenant: CloudTenantContext, revokedAt: Date): Promise<CloudApiKey> {
+    const result = await this.db.query<Record<string, unknown>>(
+      'UPDATE api_keys SET revoked_at = $1 WHERE id = $2 AND organization_id = $3 RETURNING *',
+      [revokedAt, apiKeyId, tenant.organizationId]
+    );
+    if (!result.rows[0]) throw new Error(`API key not found: ${apiKeyId}`);
+    return mapApiKeyRow(result.rows[0]);
+  }
 
   async findByPresentedKey(presentedKey: string): Promise<CloudApiKeyLookupResult> {
     const keyPrefix = presentedKey.slice(0, 8);
@@ -380,6 +417,23 @@ function mapAddressPoolRow(row: Record<string, unknown>, tenant: CloudTenantCont
     depositReference: row.deposit_reference ? String(row.deposit_reference) : undefined,
     orderId: row.order_id ? String(row.order_id) : undefined,
   });
+}
+
+function mapApiKeyRow(row: Record<string, unknown>): CloudApiKey {
+  return {
+    id: String(row.id),
+    keyPrefix: String(row.key_prefix),
+    name: String(row.name),
+    organizationId: String(row.organization_id),
+    userId: row.user_id ? String(row.user_id) : undefined,
+    role: row.role ? String(row.role) as CloudOrganizationRole : undefined,
+    capabilities: Array.isArray(row.capabilities) ? row.capabilities.map(String) as CloudApiKey['capabilities'] : undefined,
+    expiresAt: row.expires_at ? new Date(String(row.expires_at)) : undefined,
+    revokedAt: row.revoked_at ? new Date(String(row.revoked_at)) : undefined,
+    createdAt: row.created_at ? new Date(String(row.created_at)) : undefined,
+    lastUsedAt: row.last_used_at ? new Date(String(row.last_used_at)) : undefined,
+    metadata: row.metadata as Record<string, unknown> | undefined,
+  };
 }
 
 function mapWebhookRow(row: Record<string, unknown>, tenant: CloudTenantContext): CloudWebhookEndpoint {
