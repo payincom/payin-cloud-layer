@@ -20,6 +20,13 @@ export interface CloudHonoPublicCheckoutAdapter {
 export interface CloudHonoAdapterOptions extends CloudRouteHandlersOptions {
   legacyEnvelopes?: boolean;
   publicCheckout?: CloudHonoPublicCheckoutAdapter;
+  hardening?: CloudHonoOperationalHardeningOptions;
+}
+
+export interface CloudHonoOperationalHardeningOptions {
+  allowedOrigins?: string[];
+  rateLimit?: { windowMs: number; maxRequests: number };
+  deployment?: { commitSha?: string; deploymentId?: string; environment?: string };
 }
 
 export type CloudHonoApp = Hono;
@@ -28,6 +35,9 @@ export function createCloudHonoApp(options: CloudHonoAdapterOptions): CloudHonoA
   const app = new Hono();
   const routes = createCloudRouteHandlers({ services: options.services });
   const legacy = options.legacyEnvelopes ?? false;
+
+  installOperationalHardening(app, options.hardening);
+  app.get('/api/v1/runtime/deployment', (c) => c.json({ data: options.hardening?.deployment ?? {} }));
 
   app.post('/api/v1/orders', async (c) => respond(c, await routes.orders.createOrder({ headers: headers(c), body: await jsonBody(c) as never }), legacy, 'data'));
   app.get('/api/v1/orders', async (c) => respond(c, await routes.orders.listOrders({ headers: headers(c), body: undefined, query: query(c) }), legacy, 'data+pagination'));
@@ -180,6 +190,43 @@ function query(c: { req: { query: () => Record<string, string> } }): Record<stri
 async function jsonBody(c: { req: { raw: Request } }): Promise<unknown> {
   if (!hasJsonBody(c.req.raw)) return {};
   return c.req.raw.json();
+}
+
+function installOperationalHardening(app: Hono, hardening: CloudHonoOperationalHardeningOptions = {}): void {
+  const counters = new Map<string, { count: number; resetAt: number }>();
+  app.use('*', async (c, next) => {
+    c.header('x-content-type-options', 'nosniff');
+    c.header('x-frame-options', 'DENY');
+    c.header('referrer-policy', 'no-referrer');
+    c.header('permissions-policy', 'camera=(), microphone=(), geolocation=()');
+
+    const origin = c.req.header('origin');
+    const allowedOrigins = hardening.allowedOrigins ?? [];
+    if (origin && (allowedOrigins.includes('*') || allowedOrigins.includes(origin))) {
+      c.header('access-control-allow-origin', allowedOrigins.includes('*') ? '*' : origin);
+      c.header('vary', 'Origin');
+      c.header('access-control-allow-headers', 'authorization, content-type');
+      c.header('access-control-allow-methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    }
+
+    if (c.req.method === 'OPTIONS') return c.body(null, 204);
+
+    const rateLimit = hardening.rateLimit;
+    if (rateLimit && !c.req.path.startsWith('/healthz')) {
+      const key = `${c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? c.req.header('cf-connecting-ip') ?? 'unknown'}:${c.req.path}`;
+      const now = Date.now();
+      const bucket = counters.get(key);
+      const current = !bucket || bucket.resetAt <= now ? { count: 0, resetAt: now + rateLimit.windowMs } : bucket;
+      current.count += 1;
+      counters.set(key, current);
+      c.header('x-ratelimit-limit', String(rateLimit.maxRequests));
+      c.header('x-ratelimit-remaining', String(Math.max(0, rateLimit.maxRequests - current.count)));
+      c.header('x-ratelimit-reset', String(Math.ceil(current.resetAt / 1000)));
+      if (current.count > rateLimit.maxRequests) return c.json({ success: false, error: 'Rate limit exceeded' }, 429);
+    }
+
+    await next();
+  });
 }
 
 function hasJsonBody(request: Request): boolean {

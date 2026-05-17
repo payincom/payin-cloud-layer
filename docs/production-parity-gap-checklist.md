@@ -26,7 +26,7 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
   - `GET /api/deposits/:address/status`
   - `GET /api/orders/:orderId/transfers`
   - `GET /api/transfers/:transactionHash/status`
-- Online E2E validates chain/token discovery, checkout JSON, checkout HTML, checkout preview HTML, order transfer/status APIs, order status HTML, deposit HTML/status API, public checkout order creation, merchant APIs, webhook endpoint list/delete/test, smoke, and auth failure.
+- Online E2E validates chain/token discovery, checkout JSON, checkout HTML, checkout preview HTML, order transfer/status APIs, order status HTML, deposit HTML/status API, public checkout order creation, merchant APIs, webhook endpoint list/delete/test, webhook delivery list/replay, audit event list, smoke, and auth failure.
 
 ## Remaining gaps before full production replacement
 
@@ -56,7 +56,8 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 - [ ] Audit/event list routes.
 - [ ] Full config-management CRUD parity.
 - [x] Webhook endpoint list/delete routes.
-- [ ] Webhook delivery listing/replay routes.
+- [x] Webhook delivery listing/replay routes.
+- [x] Audit event listing route.
 - [ ] Organization/member routes exposed through the deployable Hono runtime, not only route harnesses.
 
 ### P1 — Persistence and operations
@@ -77,6 +78,6 @@ This checklist tracks remaining work to move from the isolated Cloud Layer onlin
 
 - Railway sandbox: `payincloudsandbox` / `cloud-runtime`
 - URL: `https://cloud-runtime-production-13e5.up.railway.app`
-- Latest managed-PostgreSQL public discovery/checkout/order/deposit/preview/transfer/webhook-management E2E passed with slug `deployed-e2e-mp9lltkq`.
+- Latest managed-PostgreSQL public discovery/checkout/order/deposit/preview/transfer/webhook-delivery/audit E2E passed with slug `deployed-e2e-mp9m07dv`.
 - Latest persisted state verified after Railway restart: order `order-mp9l9sq5-yrndogpu` and payment-link slug `deployed-e2e-mp9l9rom` remained readable.
-- Latest commit implementing webhook endpoint management APIs: `a5233d7`.
+- Latest commit implementing webhook delivery list/replay APIs: `a00f63b`.

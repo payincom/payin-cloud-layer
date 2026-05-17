@@ -20,7 +20,11 @@ function expect(condition, message, detail) {
   if (!condition) throw new Error(`${message}${detail === undefined ? '' : `: ${JSON.stringify(detail)}`}`);
 }
 const suffix = Date.now().toString(36);
-const readiness = await request('/api/v1/readiness', { headers: authHeaders });
+const deployment = await request('/api/v1/runtime/deployment');
+expect(deployment && typeof deployment === 'object' && 'data' in deployment, 'runtime deployment metadata returns data envelope', deployment);
+const readinessResponse = await fetch(`${cleanBase}/api/v1/readiness`, { headers: authHeaders });
+expect(readinessResponse.headers.get('x-content-type-options') === 'nosniff', 'security headers include x-content-type-options', Object.fromEntries(readinessResponse.headers.entries()));
+const readiness = await readinessResponse.json();
 expect(readiness?.data?.checks?.some((check) => check.name === 'hosted-config'), 'readiness includes hosted-config', readiness);
 const config = await request('/api/v1/config', { headers: authHeaders });
 expect(config?.config?.enabledTokens?.includes('USDC'), 'config includes USDC', config);

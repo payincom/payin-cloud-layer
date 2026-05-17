@@ -157,6 +157,15 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions & { ba
 
   const app = createCloudHonoApp({
     legacyEnvelopes: true,
+    hardening: {
+      allowedOrigins: parseCsv(process.env.PAYIN_CORS_ALLOWED_ORIGINS ?? process.env.CORS_ALLOWED_ORIGINS),
+      rateLimit: process.env.PAYIN_RATE_LIMIT_PER_MINUTE ? { windowMs: 60_000, maxRequests: Number(process.env.PAYIN_RATE_LIMIT_PER_MINUTE) } : undefined,
+      deployment: {
+        commitSha: process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA,
+        deploymentId: process.env.RAILWAY_DEPLOYMENT_ID,
+        environment: process.env.RAILWAY_ENVIRONMENT_NAME ?? process.env.NODE_ENV,
+      },
+    },
     services: {
       orders: new CloudOrderService({ authenticator, entitlementProvider, hostedConfig, orders, usageMeter, auditTrail, billingLimitEnforcer }),
       paymentLinks: new CloudPaymentLinkService({ authenticator, entitlementProvider, hostedConfig, paymentLinks, usageMeter, auditTrail, billingLimitEnforcer }),
@@ -239,6 +248,11 @@ export function createPayInCloudRuntime(options: PayInCloudRuntimeOptions & { ba
     listUsage: () => Promise.resolve(usageMeter.listUsage({ tenantId: tenant.organizationId })),
     repositories: { orders, paymentLinks, addressPool, webhooks: webhooks as InMemoryCloudWebhookRepository },
   };
+}
+
+function parseCsv(value: string | undefined): string[] | undefined {
+  const entries = value?.split(',').map((entry) => entry.trim()).filter(Boolean) ?? [];
+  return entries.length ? entries : undefined;
 }
 
 async function createPostgresBackingStores(options: PayInCloudRuntimeOptions, databaseUrl: string): Promise<RuntimeBackingStores> {
