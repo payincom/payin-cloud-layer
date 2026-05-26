@@ -32,6 +32,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
+  cloudLayerDevLogin: (email?: string) => Promise<void>;
+  simulatedEmailLogin: (email?: string) => Promise<void>;
   logout: () => Promise<void>;
   switchOrganization: (orgId: string) => Promise<void>;
   refreshOrganizations: () => Promise<void>;
@@ -108,27 +110,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.setItem(LAST_ORG_KEY, org.id);
   };
 
+  const toAdminOrganization = (org: { id: string; name: string; slug: string }): Organization => ({
+    id: org.id,
+    name: org.name,
+    slug: org.slug,
+    role: 'owner',
+    memberStatus: 'active',
+  });
+
   // Initialize: Check if user is already logged in
   useEffect(() => {
     const initAuth = async () => {
       const token = api.getToken();
       if (token) {
-        if (token.startsWith('pk_')) {
-          const sandboxOrg = createSandboxOrganization();
-          setUser({
-            id: 'manual-test-api-key-user',
-            username: 'manual-test-admin',
-            role: 'admin',
-            currentOrganization: sandboxOrg,
-          });
-          setOrganization(sandboxOrg);
-          setOrganizations([sandboxOrg]);
-          api.setOrganizationId(sandboxOrg.id);
-          localStorage.setItem(LAST_ORG_KEY, sandboxOrg.id);
-          setIsLoading(false);
-          return;
-        }
         try {
+          if (api.isLocalDevToken()) {
+            const response = await api.getCloudLayerCurrentOrg();
+            const currentOrganization = toAdminOrganization(response.organization);
+            const currentUser = response.users[0];
+
+            setUser({
+              id: currentUser?.id ?? 'local-dev-user',
+              username: currentUser?.displayName ?? 'local-dev',
+              email: currentUser?.email,
+              role: 'local-dev',
+              isSuperadmin: true,
+              currentOrganization,
+            });
+            setOrganizations([currentOrganization]);
+            setOrganizationAndSave(currentOrganization);
+            setIsLoading(false);
+            return;
+          }
+
           const response = await api.getCurrentUser();
           if (response.success && response.data) {
             setUser(response.data);
@@ -158,20 +172,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Clear organization ID before login to avoid sending stale org ID
       api.clearOrganizationId();
 
-      if (password.startsWith('pk_')) {
-        const sandboxOrg = createSandboxOrganization();
-        api.setToken(password);
-        setUser({
-          id: 'manual-test-api-key-user',
-          username: username || 'manual-test-admin',
-          role: 'admin',
-          currentOrganization: sandboxOrg,
-        });
-        setOrganizationAndSave(sandboxOrg);
-        setOrganizations([sandboxOrg]);
-        return;
-      }
-
       const response = await api.login(username, password);
       if (response.success && response.data) {
         setUser(response.data.user);
@@ -199,6 +199,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Login error:', error);
       throw error;
     }
+  };
+
+  const applyCloudLayerSession = (response: Awaited<ReturnType<typeof api.devLoginCloudLayerControlPlane>>) => {
+    const currentOrganization = toAdminOrganization(response.organization);
+
+    setUser({
+      id: response.user.id,
+      username: response.user.displayName,
+      email: response.user.email,
+      role: response.authBoundary === 'server-session-cookie' ? 'railway-proof' : 'local-dev',
+      isSuperadmin: true,
+      currentOrganization,
+    });
+    setOrganizations([currentOrganization]);
+    setOrganizationAndSave(currentOrganization);
+  };
+
+  const cloudLayerDevLogin = async (email?: string) => {
+    applyCloudLayerSession(await api.devLoginCloudLayerControlPlane({ email }));
+  };
+
+  const simulatedEmailLogin = async (email?: string) => {
+    applyCloudLayerSession(await api.simulatedEmailLoginCloudLayerControlPlane({ email }));
   };
 
   /**
@@ -259,6 +282,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAuthenticated: !!user && !!organization,
     isLoading,
     login,
+    cloudLayerDevLogin,
+    simulatedEmailLogin,
     logout,
     switchOrganization,
     refreshOrganizations,
@@ -292,14 +317,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
-
-function createSandboxOrganization(): Organization {
-  return {
-    id: 'org-cloud-layer-sandbox',
-    name: 'Cloud Layer Sandbox',
-    slug: 'org-cloud-layer-sandbox',
-    role: 'admin',
-    memberStatus: 'active',
-  };
 }

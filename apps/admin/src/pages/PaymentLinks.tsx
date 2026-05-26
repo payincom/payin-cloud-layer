@@ -39,7 +39,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { renderPaymentLinkCheckoutPageBrowser } from '@payin/shared/checkout';
+import { renderPaymentLinkCheckoutPageBrowser } from '@/lib/checkout-preview';
 import {
   DropdownMenu,
   DropdownMenuContent,

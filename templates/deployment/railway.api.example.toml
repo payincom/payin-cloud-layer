@@ -1,0 +1,24 @@
+# Example-only Railway API template for a hosted PayIn Cloud overlay.
+# Copy to a deployment repo and replace placeholders in your deployment platform.
+# Do not commit secrets, project IDs, database URLs, API keys, or private keys.
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm ci && npm run build"
+watchPaths = [
+  "src/**",
+  "templates/deployment/railway.api.example.toml",
+  "package.json",
+  "package-lock.json",
+]
+
+[deploy]
+startCommand = "npm run start"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# Configure these in the host secret manager, not in this file:
+# NODE_ENV, PORT, DATABASE_URL, JWT_SECRET, SESSION_SECRET,
+# RPC/provider API keys, webhook secrets, Cloud admin credentials.

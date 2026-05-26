@@ -13,6 +13,11 @@ import AddressPool from './pages/AddressPool';
 import Config from './pages/Config';
 import ApiKeys from './pages/ApiKeys';
 import PaymentLinks from './pages/PaymentLinks';
+import CloudLayerControlPlane from './pages/CloudLayerControlPlane';
+
+const routerBasename = import.meta.env.BASE_URL === '/'
+  ? undefined
+  : import.meta.env.BASE_URL.replace(/\/$/, '');
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,7 +32,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={routerBasename}>
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
@@ -49,6 +54,7 @@ function App() {
               <Route path="address-pool" element={<AddressPool />} />
               <Route path="config" element={<Config />} />
               <Route path="api-keys" element={<ApiKeys />} />
+              <Route path="cloud-layer/control-plane" element={<CloudLayerControlPlane />} />
             </Route>
 
             {/* Catch all - redirect to home */}

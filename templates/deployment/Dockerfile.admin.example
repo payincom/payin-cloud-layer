@@ -1,0 +1,28 @@
+# Example-only admin static-site Dockerfile.
+# This documents the hosted Cloud overlay pattern without copying admin source.
+
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+ARG VITE_API_URL
+ARG VITE_PAYMENT_LINK_PUBLIC_URL
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+
+COPY package*.json ./
+COPY apps/admin/package*.json ./apps/admin/
+RUN npm ci
+
+COPY apps/admin ./apps/admin
+RUN npm run build -w apps/admin
+
+FROM nginx:alpine
+COPY --from=builder /app/apps/admin/dist /usr/share/nginx/html
+RUN printf '%s\n' \
+  'server {' \
+  '  listen __PORT__;' \
+  '  root /usr/share/nginx/html;' \
+  '  index index.html;' \
+  '  location / { try_files $uri $uri/ /index.html; }' \
+  '}' > /etc/nginx/conf.d/default.conf
+CMD ["/bin/sh", "-c", "sed -i \"s/__PORT__/${PORT:-80}/g\" /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

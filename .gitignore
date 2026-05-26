@@ -4,3 +4,7 @@ dist/
 .DS_Store
 .env
 .env.*
+.apcp/
+memory/
+apps/*/node_modules/
+apps/*/dist/

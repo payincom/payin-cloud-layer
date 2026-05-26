@@ -17,13 +17,14 @@ import LoadingIndicator from '@/components/LoadingIndicator';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { login, cloudLayerDevLogin, simulatedEmailLogin, isAuthenticated } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [isSocialAuthLoading, setIsSocialAuthLoading] = useState(false);
+  const [isCloudLayerDevLoading, setIsCloudLayerDevLoading] = useState(false);
   const [socialProvider, setSocialProvider] = useState<'github' | 'google' | null>(null);
 
   // Magic link state
@@ -76,27 +77,29 @@ export default function Login() {
     setSocialProvider(loading ? provider ?? null : null);
   };
 
+  const handleCloudLayerDevLogin = async () => {
+    setError('');
+    setIsCloudLayerDevLoading(true);
+
+    try {
+      await cloudLayerDevLogin(magicLinkEmail || username || undefined);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Local Cloud Layer dev login failed.');
+    } finally {
+      setIsCloudLayerDevLoading(false);
+    }
+  };
+
   const handleMagicLinkSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     setIsMagicLinkLoading(true);
 
     try {
-      // Magic link via API (placeholder - not yet implemented server-side)
-      const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
-      const res = await fetch(`${apiUrl}/auth/magic-link`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: magicLinkEmail, redirectTo: `${window.location.origin}/auth/callback` }),
-      });
-      const result = await res.json();
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to send magic link');
-      }
-
+      await simulatedEmailLogin(magicLinkEmail);
       setMagicLinkSent(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send magic link. Please try again.');
+      setError(err instanceof Error ? err.message : 'Simulated email login failed. Please try again.');
     } finally {
       setIsMagicLinkLoading(false);
     }
@@ -193,13 +196,13 @@ export default function Login() {
                   <div className="rounded-lg bg-green-50 dark:bg-green-950/30 p-4 text-center space-y-2">
                     <Mail className="mx-auto h-10 w-10 text-green-600 dark:text-green-400" />
                     <h3 className="font-semibold text-green-900 dark:text-green-100">
-                      Check your email!
+                      Simulated login complete
                     </h3>
                     <p className="text-sm text-green-700 dark:text-green-300">
-                      We've sent a magic link to <strong>{magicLinkEmail}</strong>
+                      Signed in as <strong>{magicLinkEmail}</strong> for the Railway proof environment.
                     </p>
                     <p className="text-xs text-green-600 dark:text-green-400">
-                      Click the link in the email to sign in. The link will expire in 1 hour.
+                      No email was sent; the server created a proof-environment session cookie and a safe browser preview.
                     </p>
                   </div>
                   <Button
@@ -235,7 +238,7 @@ export default function Login() {
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      We'll send you a magic link to sign in without a password
+                      Railway proof mode simulates email login without sending real email
                     </p>
                   </div>
 
@@ -329,6 +332,34 @@ export default function Login() {
               </Button>
             </form>
             )}
+          </div>
+
+          <div className="mt-6 rounded-lg border border-dashed border-amber-500/60 bg-amber-500/10 p-4 space-y-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">Cloud Layer proof shell</p>
+              <p className="text-xs text-muted-foreground">
+                Uses simulated email/session login when provided; the local-dev button remains for deterministic smoke tests only.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleCloudLayerDevLogin}
+              disabled={isCloudLayerDevLoading}
+            >
+              {isCloudLayerDevLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Starting local shell...
+                </>
+              ) : (
+                <>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Enter Deterministic Local Shell
+                </>
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>

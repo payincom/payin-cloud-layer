@@ -8,6 +8,7 @@ import {
   Database,
   Settings,
   Key,
+  CloudCog,
   Menu,
   X,
   ChevronLeft,
@@ -99,6 +100,7 @@ export default function Layout() {
     { name: 'Deposits', path: '/deposits', icon: Landmark },
     { name: 'Address Pool', path: '/address-pool', icon: Database },
     ...(canAccessConfig ? [{ name: 'Configuration', path: '/config', icon: Settings }] : []),
+    { name: 'Cloud Layer', path: '/cloud-layer/control-plane', icon: CloudCog },
   ] as const;
 
   const currentPage = navigation.find((item) => {

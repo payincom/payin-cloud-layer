@@ -4,6 +4,118 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
+export interface CloudLayerControlPlaneStatus {
+  ok: boolean;
+  provider: string;
+  mode: 'local-dev' | 'railway-proof';
+  productionSecurity: false;
+  deterministic: boolean;
+  storage: string;
+  namespace: string;
+  counts: {
+    organizations: number;
+    users: number;
+    sessions: number;
+    apiKeys: number;
+  };
+}
+
+export interface CloudLayerOrganization {
+  id: string;
+  slug: string;
+  name: string;
+  mode: 'local-dev';
+  createdAt: string;
+}
+
+export interface CloudLayerUser {
+  id: string;
+  email: string;
+  displayName: string;
+  organizationIds: string[];
+  createdAt: string;
+}
+
+export interface CloudLayerSessionSummary {
+  id: string;
+  sessionPreview: string;
+  sensitiveMaterialReturned: false;
+  userId: string;
+  organizationId: string;
+  expiresAt: string;
+}
+
+export interface CloudLayerApiKeyPreview {
+  id: string;
+  organizationId: string;
+  label: string;
+  preview: string;
+  checksum: string;
+  status: 'active' | 'revoked';
+  createdAt: string;
+}
+
+export interface CloudLayerEntitlement {
+  feature: string;
+  granted: boolean;
+  quota: {
+    limit: number;
+    used: number;
+    remaining: number;
+    reset: 'never';
+  };
+}
+
+export interface CloudLayerBootstrapResponse {
+  localDevOnly: true;
+  organization: CloudLayerOrganization;
+  user: CloudLayerUser;
+  session: CloudLayerSessionSummary;
+  entitlements: CloudLayerEntitlement[];
+}
+
+export interface CloudLayerDevLoginResponse {
+  authenticated: true;
+  localDevOnly: true;
+  productionSecurity: false;
+  authBoundary?: 'local-preview' | 'server-session-cookie';
+  user: CloudLayerUser;
+  organization: CloudLayerOrganization;
+  session: CloudLayerSessionSummary;
+}
+
+export interface CloudLayerCurrentOrgResponse {
+  localDevOnly: true;
+  tenant: {
+    id: string;
+    organizationId: string;
+    source: 'header' | 'default-local';
+  };
+  organization: CloudLayerOrganization;
+  users: CloudLayerUser[];
+}
+
+export interface CloudLayerApiKeysResponse {
+  localDevOnly: true;
+  organizationId: string;
+  apiKeys: CloudLayerApiKeyPreview[];
+}
+
+export interface CloudLayerCreateApiKeyResponse {
+  localDevOnly: true;
+  productionSecurity: false;
+  apiKey: CloudLayerApiKeyPreview;
+  sensitiveMaterialReturned: false;
+  message: string;
+}
+
+export interface CloudLayerEntitlementsResponse {
+  localDevOnly: true;
+  organizationId: string;
+  evaluation: string;
+  entitlements: CloudLayerEntitlement[];
+}
+
 class ApiClient {
   private token: string | null = null;
   private organizationId: string | null = null;
@@ -35,6 +147,10 @@ class ApiClient {
    */
   getToken(): string | null {
     return this.token;
+  }
+
+  isLocalDevToken(): boolean {
+    return this.token?.startsWith('local-dev-control-plane:') || this.token?.startsWith('simulated-email-session-preview:') || false;
   }
 
   /**
@@ -570,6 +686,57 @@ class ApiClient {
 
   async getWebhookQueueStatus() {
     return this.request('GET', '/notifications/queue/status');
+  }
+
+  // ==================== Cloud Layer Control Plane ====================
+
+  async getCloudLayerControlPlaneStatus() {
+    return this.request<CloudLayerControlPlaneStatus>('GET', '/cloud-layer/control-plane/status');
+  }
+
+  async bootstrapCloudLayerControlPlane(data?: { organizationName?: string; email?: string }) {
+    return this.request<CloudLayerBootstrapResponse>('POST', '/cloud-layer/control-plane/bootstrap', data);
+  }
+
+  async devLoginCloudLayerControlPlane(data?: { email?: string; organizationId?: string }) {
+    const response = await this.request<CloudLayerDevLoginResponse>('POST', '/cloud-layer/control-plane/dev-login', data);
+    if (response.authenticated && response.session?.id) {
+      this.setToken(`local-dev-control-plane:${response.session.id}`);
+      this.setOrganizationId(response.organization.id);
+      localStorage.setItem('last_organization_id', response.organization.id);
+    }
+    return response;
+  }
+
+
+  async simulatedEmailLoginCloudLayerControlPlane(data?: { email?: string; organizationId?: string }) {
+    const response = await this.request<CloudLayerDevLoginResponse & { simulatedEmailOnly: true; delivery: 'simulated-no-email-sent'; message: string }>(
+      'POST',
+      '/cloud-layer/control-plane/simulated-email-login',
+      data
+    );
+    if (response.authenticated && response.session?.id) {
+      this.setToken(`simulated-email-session-preview:${response.session.id}`);
+      this.setOrganizationId(response.organization.id);
+      localStorage.setItem('last_organization_id', response.organization.id);
+    }
+    return response;
+  }
+
+  async getCloudLayerCurrentOrg() {
+    return this.request<CloudLayerCurrentOrgResponse>('GET', '/cloud-layer/control-plane/org/current');
+  }
+
+  async listCloudLayerControlPlaneApiKeys() {
+    return this.request<CloudLayerApiKeysResponse>('GET', '/cloud-layer/control-plane/api-keys');
+  }
+
+  async createCloudLayerControlPlaneApiKey(label?: string) {
+    return this.request<CloudLayerCreateApiKeyResponse>('POST', '/cloud-layer/control-plane/api-keys', { label });
+  }
+
+  async getCloudLayerEntitlementsStatus() {
+    return this.request<CloudLayerEntitlementsResponse>('GET', '/cloud-layer/control-plane/entitlements/status');
   }
 
   // ==================== Generic Methods ====================

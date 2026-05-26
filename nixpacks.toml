@@ -1,0 +1,20 @@
+# Railway deployment root for payin-cloud-layer hosted sandbox.
+# This file intentionally contains no secrets. It builds the local payin-open
+# dependency first, then builds/starts the Cloud Layer overlay.
+
+[phases.setup]
+nixPkgs = ["nodejs_22", "npm-10_x"]
+
+[phases.install]
+cmds = [
+  "cd payin-open && npm install --legacy-peer-deps --include=dev --no-audit --no-fund",
+  "cd payin-cloud-layer && npm ci --legacy-peer-deps --include=dev --no-audit --no-fund"
+]
+
+[phases.build]
+cmds = [
+  "VITE_API_URL=/api/v1 VITE_PAYMENT_LINK_PUBLIC_URL=/ npm run build"
+]
+
+[start]
+cmd = "npm start"

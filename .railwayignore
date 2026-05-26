@@ -1,0 +1,14 @@
+# Keep Railway upload focused on the Cloud Layer and its local Open dependency.
+# No secrets or env files should be uploaded.
+**/.env
+**/.env.*
+**/*secret*
+**/*credential*
+**/*private-key*
+
+payin-cloud/
+*/node_modules/
+*/dist/
+*/apps/*/dist/
+*/public/dist/
+.git/

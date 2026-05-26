@@ -1,54 +1,38 @@
 {
-  "name": "@payin/cloud-layer",
-  "version": "0.1.0-local",
+  "name": "payin-cloud-layer",
+  "version": "0.0.0-spike",
   "private": true,
   "type": "module",
-  "description": "PayIn Cloud overlay layer over PayIn Open shared payment core",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
+  "description": "Spike showing a PayIn Cloud overlay composed on payin-open without forking payment core.",
   "scripts": {
-    "build": "npm run build -w packages/shared && tsc --build",
-    "build:admin": "npm run build -w packages/shared && npm run build -w apps/admin",
-    "type-check": "npm run build -w packages/shared && tsc --build --pretty false",
-    "type-check:admin": "npm run build -w packages/shared && tsc -b apps/admin",
-    "test": "vitest run",
-    "verify": "npm run type-check && npm run build && npm test",
-    "start": "node dist/src/server.js",
-    "test:e2e:deployed": "node scripts/deployed-e2e.mjs"
+    "type-check": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "build:open-api": "npm --prefix ../payin-open run build -w apps/api",
+    "safety:scan": "node scripts/validate-safety.mjs",
+    "validate": "npm run build:open-api && npm run type-check && npm run build && npm run build:admin && npm run safety:scan",
+    "smoke:runtime": "node scripts/smoke-runtime.mjs",
+    "smoke:policy": "npm run build && npm run smoke:runtime",
+    "type-check:admin": "npm run type-check -w apps/admin",
+    "build:admin": "npm run build -w apps/admin",
+    "production-readiness:check": "node scripts/check-production-readiness.mjs",
+    "control-plane:db:migrate": "npm run build && node scripts/control-plane-postgres.mjs migrate",
+    "control-plane:db:check": "npm run build && node scripts/control-plane-postgres.mjs check",
+    "smoke:r11": "npm run build && node scripts/smoke-r11.mjs",
+    "smoke:r12": "npm run build && node scripts/smoke-r12.mjs"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.6",
+    "@payin/app": "file:../payin-open/apps/api",
+    "hono": "^4.10.4",
+    "pg": "^8.21.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.24",
     "@types/pg": "^8.20.0",
-    "pg": "^8.20.0",
-    "typescript": "^5.9.3",
-    "vitest": "^1.6.1"
+    "typescript": "^5.9.3"
   },
-  "license": "Apache-2.0",
-  "files": [
-    "dist",
-    "README.md",
-    "docs"
-  ],
-  "exports": {
-    ".": {
-      "types": "./dist/src/index.d.ts",
-      "import": "./dist/src/index.js"
-    }
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/payincom/payin-cloud-layer.git"
-  },
-  "bugs": {
-    "url": "https://github.com/payincom/payin-cloud-layer/issues"
-  },
-  "homepage": "https://github.com/payincom/payin-cloud-layer#readme",
-  "dependencies": {
-    "@hono/node-server": "^1.19.6",
-    "hono": "^4.12.19"
-  }
+  "workspaces": [
+    "apps/*"
+  ]
 }

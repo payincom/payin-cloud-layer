@@ -35,7 +35,7 @@ export function SocialLogin({ onLoadingChange }: SocialLoginProps) {
   const [error, setError] = useState('');
   const [config, setConfig] = useState<OAuthConfig | null>(null);
 
-  const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
   useEffect(() => {
     fetch(`${apiUrl}/auth/oauth/config`)
