@@ -1,7 +1,10 @@
-import {
-  createApp as createOpenApp,
-  type CreateAppOptions,
-} from '@payin/app/server';
+import { createApp as createOpenApp } from '@payin/app/server';
+import type {
+  OpenCloudOnlyRouteGuard,
+  OpenManagerProvider,
+  OpenRuntimeCompositionOptions,
+  OpenRuntimeRouteDependencies,
+} from '@payin/app/runtime-contract';
 import { Hono } from 'hono';
 import {
   cloudPolicyStatus,
@@ -36,7 +39,7 @@ import {
 } from '../local-open-seam-policies.js';
 
 export interface CloudLayerOptions {
-  openApp?: CreateAppOptions;
+  openApp?: OpenRuntimeCompositionOptions;
   policyConfig?: CloudPolicyConfig;
   policyDependencies?: CloudPolicyDependencies;
   runtimeConfig?: CloudRuntimeConfig;
@@ -57,7 +60,7 @@ export function createCloudApiApp(options: CloudLayerOptions = {}) {
     new LocalControlPlaneProvider(controlPlaneStorage);
   const getManager =
     options.openApp?.getManager ??
-    createLayerHealthManagerProvider<ReturnType<NonNullable<CreateAppOptions['getManager']>>>(runtime);
+    createLayerHealthManagerProvider<ReturnType<OpenManagerProvider>>(runtime);
   const openSeamPolicies = createLocalOpenSeamPolicies(policy.config);
   const routeDependencies = mergeLocalOpenSeamPolicies(options.openApp?.routeDependencies, openSeamPolicies);
 
@@ -67,8 +70,8 @@ export function createCloudApiApp(options: CloudLayerOptions = {}) {
     // Railway sandbox installs payin-open and this overlay as adjacent Node projects,
     // which can materialize two equivalent Hono type identities. Keep the runtime seam
     // explicit and cast only at the adapter boundary; do not copy/fork Open internals.
-    routeDependencies: routeDependencies as CreateAppOptions['routeDependencies'],
-    cloudOnlyRouteGuard: (options.openApp?.cloudOnlyRouteGuard ?? policy.guard) as CreateAppOptions['cloudOnlyRouteGuard'],
+    routeDependencies: routeDependencies as OpenRuntimeRouteDependencies,
+    cloudOnlyRouteGuard: (options.openApp?.cloudOnlyRouteGuard ?? policy.guard) as OpenCloudOnlyRouteGuard,
     extendPublicRoutes(app) {
       options.openApp?.extendPublicRoutes?.(app);
       const cloudApp = app as unknown as Hono;

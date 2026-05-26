@@ -1,8 +1,8 @@
 import type { Context, Next } from 'hono';
-import type { CreateAppOptions } from '@payin/app/server';
+import type { OpenCloudOnlyRouteGuard } from '@payin/app/runtime-contract';
 import { createLocalCloudPolicyProviders } from './cloud-policy-providers.js';
 
-type CloudOnlyRouteGuard = NonNullable<CreateAppOptions['cloudOnlyRouteGuard']>;
+type CloudOnlyRouteGuard = OpenCloudOnlyRouteGuard;
 type LocalCloudOnlyRouteGuard = (featureName: string) => (c: Context, next: Next) => Promise<Response | void>;
 
 export type CloudPolicyMode = 'enforce' | 'report-only' | 'off';

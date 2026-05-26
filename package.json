@@ -10,7 +10,7 @@
     "start": "node dist/index.js",
     "build:open-api": "npm --prefix ../payin-open run build -w apps/api",
     "safety:scan": "node scripts/validate-safety.mjs",
-    "validate": "npm run build:open-api && npm run type-check && npm run build && npm run build:admin && npm run safety:scan",
+    "validate": "npm run build:open-api && npm run type-check && npm run build && npm run build:admin && npm run contract:check && npm run safety:scan",
     "smoke:runtime": "node scripts/smoke-runtime.mjs",
     "smoke:policy": "npm run build && npm run smoke:runtime",
     "type-check:admin": "npm run type-check -w apps/admin",
@@ -19,7 +19,8 @@
     "control-plane:db:migrate": "npm run build && node scripts/control-plane-postgres.mjs migrate",
     "control-plane:db:check": "npm run build && node scripts/control-plane-postgres.mjs check",
     "smoke:r11": "npm run build && node scripts/smoke-r11.mjs",
-    "smoke:r12": "npm run build && node scripts/smoke-r12.mjs"
+    "smoke:r12": "npm run build && node scripts/smoke-r12.mjs",
+    "contract:check": "node scripts/validate-open-contract-imports.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",

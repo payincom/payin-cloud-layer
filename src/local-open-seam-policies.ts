@@ -1,18 +1,21 @@
-import type { CreateAppOptions } from '@payin/app/server';
+import type {
+  NotificationPolicy,
+  NotificationPolicyInput,
+  OpenNotificationsRouteDependencies,
+  OpenOrdersRouteDependencies,
+  OpenPaymentLinksRouteDependencies,
+  OpenRuntimeRouteDependencies,
+  OrderCreatePolicy,
+  OrderCreatePolicyInput,
+  PaymentLinkPolicy,
+  PaymentLinkPolicyInput,
+} from '@payin/app/runtime-contract';
 import type { CloudPolicyConfig, CloudPolicyMode } from './cloud-policy.js';
 
-type RouteDependencies = NonNullable<CreateAppOptions['routeDependencies']>;
-type OrdersRouteDependencies = NonNullable<RouteDependencies['orders']>;
-type PaymentLinksRouteDependencies = NonNullable<RouteDependencies['paymentLinks']>;
-type NotificationsRouteDependencies = NonNullable<RouteDependencies['notifications']>;
-
-type OrderCreatePolicy = NonNullable<OrdersRouteDependencies['orderCreatePolicy']>;
-type PaymentLinkPolicy = NonNullable<PaymentLinksRouteDependencies['paymentLinkPolicy']>;
-type NotificationPolicy = NonNullable<NotificationsRouteDependencies['notificationPolicy']>;
-
-type OrderCreatePolicyInput = Parameters<OrderCreatePolicy['check']>[0];
-type PaymentLinkPolicyInput = Parameters<PaymentLinkPolicy['check']>[0];
-type NotificationPolicyInput = Parameters<NotificationPolicy['check']>[0];
+type RouteDependencies = OpenRuntimeRouteDependencies;
+type OrdersRouteDependencies = OpenOrdersRouteDependencies;
+type PaymentLinksRouteDependencies = OpenPaymentLinksRouteDependencies;
+type NotificationsRouteDependencies = OpenNotificationsRouteDependencies;
 
 type SeamPolicyStatus = 400 | 401 | 403 | 409 | 422 | 429;
 type SeamPolicyModeDecision = 'allow' | 'deny';
@@ -131,9 +134,9 @@ export function createLocalOpenSeamPolicies(config: CloudPolicyConfig): LocalOpe
 }
 
 export function mergeLocalOpenSeamPolicies(
-  routeDependencies: CreateAppOptions['routeDependencies'],
+  routeDependencies: OpenRuntimeRouteDependencies | undefined,
   policies: LocalOpenSeamPolicies
-): CreateAppOptions['routeDependencies'] {
+): OpenRuntimeRouteDependencies {
   return {
     ...routeDependencies,
     orders: {
