@@ -1,110 +1,297 @@
-# payin-cloud-layer spike
+# PayIn Cloud Layer — Deployable Web3 Payment Platform on PayIn Open
 
-Local spike requested by JQ to test whether PayIn Cloud can become an overlay on top of `payin-open` instead of a fork/copy of payment core.
+**PayIn Cloud Layer** is a hosted payment platform layer for teams that want a Stripe-like operating console for Web3 payments: payment orders, deposit addresses, tenant control, admin UI, webhook proof flows, and Railway-ready deployment — while keeping the payment core composed from **PayIn Open** instead of copying or forking it.
 
-## What this contains
+If you are searching for **Web3 payment gateway**, **crypto payment API**, **USDC payment links**, **on-chain deposit management**, **Railway Web3 deployment**, or **self-hosted crypto payment infrastructure**, this project is the PayIn Cloud overlay that turns the PayIn Open core into a deployable SaaS-style payment service.
 
-- Minimal TypeScript package skeleton.
-- npm workspace packaging for Cloud-owned apps under `apps/*`.
-- `apps/admin`: Cloud-owned admin UI source adapted from the private Cloud admin app, with frontend-only source/config/public assets.
-- `src/adapters/open-app.ts`: imports `createApp(options)` through the stable local package seam `@payin/app/server`.
-- Cloud guard override that enables Open-guarded hosted routes for spike purposes.
-- Layer-only status routes at `/cloud-layer/status`, `/api/v1/cloud-layer/status`, `/cloud-layer/admin/status`, and `/api/v1/cloud-layer/admin/status`.
-- Cloud-owned local SaaS control-plane routes under `/api/v1/cloud-layer/control-plane/*` for deterministic development and smoke tests.
-- Docs inventory and feasibility report under `docs/`.
+---
 
-## What this intentionally avoids
+## Why this matters
 
-- No copied `packages/processor`, `packages/manager`, `packages/auth`, or payment route logic.
-- No copied `apps/api` backend route implementations.
-- No secrets or environment-specific credentials.
-- No migrated `.env*` files. Vite admin variables are public browser config only.
-- No pushes.
+Most crypto payment products force a hard choice:
 
-## Cloud control-plane provider contracts
+- use a hosted third-party processor and lose control;
+- fork an open-source payment core and inherit long-term maintenance risk;
+- or build your own dashboard, tenant model, webhook system, deployment pipeline, and operational runbooks from scratch.
 
-M7 hardens the Cloud-owned control-plane boundary around explicit TypeScript contracts in `src/cloud-control-plane-contracts.ts`. Routes and the Admin UI depend on the `CloudControlPlaneProvider` surface for auth/session summaries, organizations/tenants, API-key metadata, and entitlement evaluation; they do not depend on a particular storage implementation.
+PayIn Cloud Layer is the middle path.
 
-Current implementations and seams:
+It adds the business-facing cloud experience around PayIn Open — admin screens, proof-mode login, organization context, address-pool operations, payment order flows, deposit reference flows, webhook delivery proofs, and hosted deployment wiring — without duplicating the Open payment engine.
 
-- `LocalControlPlaneProvider` is the active local-development implementation.
-- `InMemoryLocalControlPlaneStorage` remains the default and is selected unless an explicit local durable mode is configured.
-- `LocalJsonFileControlPlaneStorage` is still available only when `PAYIN_CLOUD_LOCAL_CONTROL_PLANE_DURABLE=true` and `PAYIN_CLOUD_LOCAL_CONTROL_PLANE_FILE=/path/to/local-control-plane.json` are both set.
-- `DisabledPostgresControlPlaneStorage` in `src/postgres-control-plane-storage.ts` is a compile-time Postgres/hosted-DB adapter seam only. It is disabled by default, throws on accidental selection, creates no external resources, reads no secrets, and is not production-ready.
+In plain language: **PayIn Open handles the payment foundation; PayIn Cloud Layer makes it easier to operate, demo, deploy, and evolve as a cloud product.**
 
-Provider selection is explicit and gated. Run `npm run control-plane:db:migrate` only in an environment where `DATABASE_URL` is explicitly configured. The migration/check commands do not print the connection string. The status endpoint reports storage kind and provider descriptor so smoke tests can detect boundary drift.
+---
 
-## Local SaaS control plane
+## What you can do with it today
 
-M6/M7 evolve the M4 Cloud-owned provider into a storage-backed local development control plane behind the M7 provider contracts. It is mounted with Open's `extendApiRoutes` seam under `/api/v1/cloud-layer/control-plane/*` and does not override Open payment or organization routes.
+This repository currently supports a Railway-hosted sandbox/proof deployment and deterministic local tests.
 
-Available local-dev endpoints:
+You can:
 
-- `GET /api/v1/cloud-layer/control-plane/status` reports provider mode, storage kind, deterministic behavior, and counts.
-- `POST /api/v1/cloud-layer/control-plane/bootstrap` creates/returns the deterministic local organization, user, session summary, and entitlements.
-- `POST /api/v1/cloud-layer/control-plane/dev-login` returns a session-like local development summary for admin smoke tests; it is not production authentication.
-- `GET /api/v1/cloud-layer/control-plane/org/current` resolves the current local tenant/org, preferring `X-Organization-Id` when provided.
-- `GET /api/v1/cloud-layer/control-plane/api-keys` lists local API key metadata.
-- `POST /api/v1/cloud-layer/control-plane/api-keys` creates local API key metadata and returns only a non-secret preview/checksum, never secret material.
-- `GET /api/v1/cloud-layer/control-plane/entitlements/status` evaluates deterministic local entitlements and quotas.
+- deploy a PayIn Cloud Layer service to Railway;
+- open the Cloud admin UI at `/admin`;
+- create and inspect proof-mode payment orders;
+- bind deposit references to generated blockchain addresses;
+- simulate webhook delivery without calling real providers;
+- run repeatable e2e checks for both `order` and `deposit` business flows;
+- validate that Cloud-owned code composes PayIn Open through stable seams.
 
-By default the provider uses process-local memory. A file-backed JSON store is available only for local development when both `PAYIN_CLOUD_LOCAL_CONTROL_PLANE_DURABLE=true` and `PAYIN_CLOUD_LOCAL_CONTROL_PLANE_FILE=/path/to/local-control-plane.json` are set, or when tests pass an explicit storage instance. This durable local mode is not a production security boundary: it is a dev-only architecture seam for future hosted DB-backed storage. Sessions remain development summaries, and API keys are persisted only as non-secret preview/checksum metadata; no secret API key values are written.
+Current proof-mode coverage includes:
 
-The migrated Admin UI includes a Cloud-owned local shell at `/admin/cloud-layer/control-plane`. Use the local-dev button on `/admin/login` to call `POST /api/v1/cloud-layer/control-plane/dev-login`; it stores a `local-dev-control-plane:*` browser token for this non-production shell only. The panel displays control-plane status, current org, entitlements, and API key previews/checksums without showing secrets. Railway proof deployments can use the hosted Postgres storage; browser tokens remain non-secret previews and the simulated email flow sets a server-side session cookie.
+| Area | Covered |
+| --- | --- |
+| Admin/API auth | Demo login, session cookie, organization context |
+| Order flow | Create order, list, detail, stats, hosted payment page, proof webhook, linked transfer |
+| Deposit flow | Bind deposit reference, list/references, stats, proof webhook, linked transfer |
+| Notifications | Webhook endpoint creation, redacted secret handling, simulated delivery logs |
+| Safety | No `.env*` reads, no real provider calls, no mainnet calls, no copied PayIn Open payment internals |
 
-## Auth compatibility routes
+> Important: proof-mode webhooks are intentionally simulated. This is a deployment and business-flow proof, not a mainnet settlement system.
 
-The Cloud layer owns a small admin-login compatibility extension mounted through `createCloudApiApp` and Open's `extendApiRoutes` seam:
+---
 
-- `POST /api/v1/auth/magic-link` validates JSON `email` and optional `redirectTo`, never sends real email, and returns `authenticated: false` with `delivery: "disabled"` by default.
-- Set `PAYIN_CLOUD_AUTH_COMPAT_MODE=local-dev` only to label the stub response as local development; it still does not create a session or send email.
-- Real magic-link delivery remains future work for a hosted Cloud auth provider.
-- `GET /api/v1/auth/oauth/config` remains the existing Open route; Cloud policy allows this public config endpoint through in enforce mode so the admin login screen can discover provider availability without exposing secret values.
+## Architecture in one minute
 
-## Admin runtime serving
+```text
+PayIn Cloud Layer
+├─ Cloud admin UI                 /admin
+├─ Cloud-owned control plane       /api/v1/cloud-layer/*
+├─ Proof-mode hosted business APIs /api/v1/orders, /api/v1/deposits, /api/v1/notifications
+├─ Railway deployment config       railway.json + nixpacks.toml at monorepo root
+└─ PayIn Open composition seam      @payin/app/server, @payin/app/runtime-contract
 
-`createCloudApiApp()` mounts the Cloud-owned static admin bundle from `apps/admin/dist` at `/admin`. Static assets are served under `/admin/assets/*`, and nested admin routes such as `/admin/cloud-layer/control-plane` fall back to `apps/admin/dist/index.html` for SPA routing. The admin status endpoints report only whether `dist/index.html` and `dist/assets/` exist plus the names of public Vite configuration variables; they do not return environment values.
-
-## Admin UI public config
-
-Open the local Cloud admin shell after building and starting the API:
-
-1. Run `npm run build:admin && npm run build && npm start`.
-2. Visit `http://localhost:3000/admin`.
-3. Choose `Enter Local Cloud Layer Shell` on `/admin/login`.
-4. Inspect `http://localhost:3000/admin/cloud-layer/control-plane` for local control-plane status, current org, entitlement quota usage, and safe API key previews.
-
-The admin app lives in `apps/admin` and defaults to the local Cloud API:
-
-- `VITE_API_URL` defaults to `http://localhost:3000/api/v1`.
-- `VITE_PAYMENT_LINK_PUBLIC_URL` is optional and controls public payment-link preview URLs.
-
-Both variables are compiled into browser assets by Vite. Treat them as public routing/config values only; never put secrets, tokens, private keys, or credentials in `VITE_*` variables.
-
-## Local validation
-
-```sh
-cd /data/openclaw/workspace/payincom/payin-cloud-layer
-npm install
-npm run validate
+PayIn Open
+└─ Payment core, API foundation, runtime contract
 ```
 
-`npm run validate` is the repeatable bounded-slice check for this spike. It runs:
+The Cloud Layer depends on PayIn Open through the local package dependency:
 
-1. `npm run build:open-api` — builds the local Open API dependency with `npm --prefix ../payin-open run build -w apps/api` before the layer consumes `@payin/app/server`.
-2. `npm run type-check` — verifies the Cloud layer TypeScript without emit.
-3. `npm run build` — compiles the Cloud layer into `dist/`.
-4. `npm run build:admin` — builds the Cloud-owned admin workspace when dependencies are installed.
-5. `npm run safety:scan` — checks for forbidden core/backend copies, likely secret literals/credential markers, and docs/template path consistency across the layer and admin app.
+```json
+"@payin/app": "file:../payin-open/apps/api"
+```
 
-The layer depends on the local Open API package via `@payin/app`: `file:../payin-open/apps/api`. Open must be built first so `@payin/app/server` resolves to `dist/server.js` and `dist/server.d.ts`.
+That means deployment must include both folders:
 
+```text
+payincom/
+├─ payin-open/
+├─ payin-cloud-layer/
+├─ package.json
+├─ railway.json
+└─ nixpacks.toml
+```
 
-## R10 Railway production-capability proof
+Deploying only `payin-cloud-layer/` will fail because Railway cannot resolve the sibling `payin-open` dependency. Deploy from the **monorepo root** (`payincom/`).
 
-R10 is not live production approval. It proves this Cloud layer can run on Railway with hosted Postgres control-plane storage, simulated email/session login, easy Sepolia-style testnet configuration, and an operator runbook. Billing/payment integration, real email delivery, third-party OAuth, and existing production data migration are non-goals.
+---
 
-Useful commands:
+## Quick start: run locally
+
+Prerequisites:
+
+- Node.js 22+
+- npm 10+
+- this workspace layout: `payin-open/` next to `payin-cloud-layer/`
+
+```sh
+cd payincom/payin-cloud-layer
+npm ci --legacy-peer-deps --include=dev
+npm --prefix ../payin-open install --legacy-peer-deps --include=dev
+npm run validate
+npm start
+```
+
+Open:
+
+```text
+http://localhost:3000/admin
+```
+
+For the local Cloud admin shell:
+
+1. Visit `/admin`.
+2. Go to the login screen.
+3. Choose **Enter Local Cloud Layer Shell**.
+4. Inspect the Cloud control-plane panel.
+
+---
+
+## Quick deploy to Railway
+
+This is the fastest repeatable path to a hosted sandbox.
+
+### 1. Install and log in to Railway CLI
+
+```sh
+npm install -g @railway/cli
+railway login
+```
+
+If you already have the CLI installed in a custom user-tools path, use that binary instead.
+
+### 2. Link the Railway project/service
+
+From the monorepo root:
+
+```sh
+cd payincom
+railway link
+railway status
+```
+
+Confirm Railway shows the target service, for example:
+
+```text
+Service: cloud-runtime
+Environment: production
+URL: https://<your-service>.up.railway.app
+```
+
+### 3. Deploy from the monorepo root
+
+```sh
+cd payincom
+railway deployment up --detach --message "Deploy PayIn Cloud Layer"
+```
+
+Why root? The root contains `railway.json`, `nixpacks.toml`, `payin-open/`, and `payin-cloud-layer/`. Railway needs all of them to build the composed service.
+
+### 4. Wait for the deployment to become healthy
+
+```sh
+railway deployment list
+railway status
+```
+
+A successful deployment should show:
+
+```text
+cloud-runtime: Online
+```
+
+The service uses the root-level deployment config:
+
+- `railway.json` sets build/start/healthcheck behavior;
+- `nixpacks.toml` installs both `payin-open` and `payin-cloud-layer` dependencies;
+- root `package.json` builds PayIn Open first, then validates/builds the Cloud Layer;
+- root `npm start` starts `payin-cloud-layer` with `HOST=0.0.0.0`.
+
+### 5. Open the hosted admin UI
+
+```text
+https://<your-service>.up.railway.app/admin
+```
+
+For the current sandbox shape, demo login defaults are proof-mode credentials configured by the app unless overridden by platform variables:
+
+```text
+admin@example.com
+payin-demo-password
+```
+
+Do not put real production secrets in frontend `VITE_*` variables. Treat all `VITE_*` values as public browser config.
+
+---
+
+## Verify the hosted deployment
+
+After Railway is online, run the hosted business e2e test from `payin-cloud-layer/`:
+
+```sh
+cd payincom/payin-cloud-layer
+BASE_URL=https://<your-service>.up.railway.app npm run hosted:business:e2e
+```
+
+Expected final line:
+
+```text
+hosted-business-e2e: passed Railway hosted redacted login, address seeding, order create/list/detail/stats/page/proof, deposit bind/references/list/stats/proof, and linked transfer checks
+```
+
+This test performs real HTTP requests against the hosted Railway service. It verifies:
+
+1. proof-mode login and session cookie;
+2. organization/session context;
+3. chain and token discovery;
+4. address-pool seeding;
+5. order creation, listing, detail, stats, hosted payment page, proof webhook, linked transfer;
+6. deposit binding, references, listing, stats, proof webhook, linked transfer;
+7. notification endpoint creation with redacted signing secret;
+8. simulated webhook delivery logs.
+
+The script intentionally redacts token, cookie, password, signing-secret, and key-like fields in its output.
+
+---
+
+## Local e2e and validation commands
+
+Use these commands when changing code:
+
+```sh
+cd payincom/payin-cloud-layer
+
+# Full local validation: Open build, Cloud type-check/build, admin build, contract guard, safety scan
+npm run validate
+
+# Local in-memory order + deposit business e2e
+npm run smoke:business:e2e
+
+# Hosted Railway order + deposit business e2e
+BASE_URL=https://<your-service>.up.railway.app npm run hosted:business:e2e
+```
+
+Useful focused smoke checks:
+
+```sh
+npm run smoke:r11      # deposit/reference proof coverage
+npm run smoke:r12      # order/payment-page proof coverage
+npm run smoke:policy   # Cloud policy boundary proof
+```
+
+---
+
+## Environment and secret policy
+
+This repository is designed to keep deployment secrets out of source control.
+
+Do:
+
+- store real secrets in Railway variables or another secret manager;
+- keep `DATABASE_URL`, session secrets, provider API keys, webhook secrets, and private keys out of git;
+- use `VITE_*` only for public browser routing/config;
+- run migrations only in environments where `DATABASE_URL` is explicitly configured.
+
+Do not:
+
+- commit `.env*` files;
+- print raw bearer tokens, cookies, private keys, or webhook signing secrets in logs;
+- deploy from `payin-cloud-layer/` alone when using the local `file:../payin-open/apps/api` dependency;
+- copy PayIn Open payment processors, managers, auth internals, or payment route implementations into this layer.
+
+---
+
+## Production readiness status
+
+PayIn Cloud Layer is currently a hosted sandbox/proof layer, not a final production launch package.
+
+Ready for:
+
+- Railway-hosted demos;
+- internal product walkthroughs;
+- order/deposit business-flow e2e validation;
+- Cloud admin/control-plane iteration;
+- testing the PayIn Open composition architecture.
+
+Not yet a production approval for:
+
+- real email delivery;
+- third-party OAuth launch;
+- billing/subscription enforcement;
+- mainnet settlement;
+- migration of existing production customer data;
+- final observability, incident response, and security review.
+
+Before production launch, use:
 
 ```sh
 npm run production-readiness:check -- --audit
@@ -112,4 +299,60 @@ node scripts/check-production-readiness.mjs --json
 npm run control-plane:db:migrate  # only where DATABASE_URL is explicitly configured
 ```
 
-See `docs/production-readiness-r10.md`, `docs/testnet-config.md`, and `docs/runbook.md`.
+See also:
+
+- [`docs/production-readiness-r10.md`](docs/production-readiness-r10.md)
+- [`docs/testnet-config.md`](docs/testnet-config.md)
+- [`docs/runbook.md`](docs/runbook.md)
+- [`docs/deployment.md`](docs/deployment.md)
+
+---
+
+## Troubleshooting
+
+### Railway deploy fails with `Cannot find module '@payin/app/server'`
+
+You probably deployed from `payin-cloud-layer/` instead of the monorepo root.
+
+Fix:
+
+```sh
+cd payincom
+railway deployment up --detach --message "Deploy PayIn Cloud Layer from monorepo root"
+```
+
+### Hosted e2e passes locally but not on Railway
+
+Check that you are testing the latest deployment:
+
+```sh
+railway status
+railway deployment list
+```
+
+Then rerun:
+
+```sh
+cd payin-cloud-layer
+BASE_URL=https://<your-service>.up.railway.app npm run hosted:business:e2e
+```
+
+### Address pool or proof state looks reused
+
+The hosted proof service keeps process-local state for the running service. The hosted e2e script uses unique order/deposit references and fresh addresses for each run, and it cleans old active deposit bindings when needed.
+
+### Admin UI loads but API calls fail
+
+Make sure the admin build uses the hosted API path:
+
+```sh
+VITE_API_URL=/api/v1 VITE_PAYMENT_LINK_PUBLIC_URL=/ npm run build
+```
+
+The root Railway build command already does this.
+
+---
+
+## Project status in one sentence
+
+**PayIn Cloud Layer is a Railway-deployable Web3 payment cloud overlay that proves order and deposit business flows on top of PayIn Open without forking the payment core.**

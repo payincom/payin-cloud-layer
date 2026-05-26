@@ -20,7 +20,9 @@
     "control-plane:db:check": "npm run build && node scripts/control-plane-postgres.mjs check",
     "smoke:r11": "npm run build && node scripts/smoke-r11.mjs",
     "smoke:r12": "npm run build && node scripts/smoke-r12.mjs",
-    "contract:check": "node scripts/validate-open-contract-imports.mjs"
+    "contract:check": "node scripts/validate-open-contract-imports.mjs",
+    "smoke:business:e2e": "npm run build && node scripts/smoke-business-e2e.mjs",
+    "hosted:business:e2e": "node scripts/hosted-business-e2e.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
